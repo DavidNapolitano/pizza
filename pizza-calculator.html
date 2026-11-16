@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pizza Dough Calculator</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f3ee;
+    --card: #fff;
+    --ink: #1c1a17;
+    --muted: #6d665e;
+    --line: #e8e1d6;
+    --soft: #f4efe7;
+    --field: #d6cdc0;
+    --field-bg: #fff;
+    --accent: #b5361f;
+    --accent-ink: #fff;
+    --accent-dark: #8f2915;
+    --accent-soft: #fbebe7;
+    --hit: #ffe08a;
+    --hit-ink: #1c1a17;
+    --yeast-bg: #fff6dc;
+    --ok: #2e7d32;
+    --warn: #8a4b00;
+    --warn-bg: #fff4e5;
+    --err: #a1271b;
+    --err-bg: #fdecea;
+    --cf: #1e5fa8;
+    --cf-bg: #dbe8f8;
+    --mid: #6b5a00;
+    --mid-bg: #f1e7b8;
+    --rt: #9a3412;
+    --rt-bg: #f9d9c6;
+    --radius: 14px;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .04), 0 6px 20px rgba(0, 0, 0, .04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161412;
+      --card: #201d1a;
+      --ink: #f1ece4;
+      --muted: #a59d92;
+      --line: #35302a;
+      --soft: #2a2622;
+      --field: #4a433b;
+      --field-bg: #191715;
+      --accent: #e0573c;
+      --accent-dark: #f39a84;
+      --accent-soft: #3a211b;
+      --hit: #6b5300;
+      --hit-ink: #fff3c4;
+      --yeast-bg: #3a3010;
+      --ok: #7bc47f;
+      --warn: #f0b35a;
+      --warn-bg: #33270f;
+      --err: #f28b7d;
+      --err-bg: #3a1d19;
+      --cf: #8db8ef;
+      --cf-bg: #1d2c40;
+      --mid: #e3cd6a;
+      --mid-bg: #353014;
+      --rt: #f3a37a;
+      --rt-bg: #3d2416;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent-dark); }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 12px 16px 20px; }
+
+  /* Header + tabs */
+  .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; }
+  .brand h1 { margin: 0; font-size: 1.3rem; letter-spacing: -.01em; }
+  .brand p { margin: 2px 0 0; font-size: .82rem; color: var(--muted); }
+  .tabs { display: inline-flex; gap: 2px; padding: 3px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; }
+  .tabs button { font: inherit; font-size: .85rem; font-weight: 600; border: 0; background: transparent; color: var(--muted); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+  .tabs .count { display: inline-block; min-width: 18px; margin-left: 5px; padding: 0 5px; border-radius: 999px; background: var(--line); color: var(--muted); font-size: .7rem; line-height: 18px; text-align: center; }
+  .tabs .count:empty { display: none; }
+
+  /* Layout */
+  .layout { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: start; }
+  .results { display: grid; gap: 12px; min-width: 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); min-width: 0; }
+  .step + .step { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 12px; }
+  .step-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .step-title { display: flex; align-items: flex-start; gap: 10px; margin: 0; font-size: 1rem; font-weight: 700; }
+  .step-title .num { flex-shrink: 0; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: .8rem; box-shadow: 0 2px 6px rgba(181, 54, 31, .25); }
+  .step-title small { display: block; margin-top: 1px; font-weight: 400; color: var(--muted); font-size: .78rem; }
+  h2.label { margin: 0; font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+
+  /* Fields */
+  .lbl { display: block; font-size: .75rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  input[type=number], input[type=text], input[type=date], select, textarea {
+    width: 100%;
+    min-width: 0;
+    height: 34px;
+    padding: 5px 9px;
+    font: inherit;
+    border: 1px solid var(--field);
+    border-radius: 9px;
+    background: var(--field-bg);
+    color: inherit;
+  }
+  textarea { height: auto; resize: vertical; }
+  input::placeholder, textarea::placeholder { color: var(--muted); opacity: .75; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  .unit { position: relative; }
+  .unit input { padding-right: 30px; }
+  .unit.wide input { padding-right: 58px; }
+  .unit span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: .8rem; pointer-events: none; }
+  .grid { display: grid; gap: 10px; }
+  .qty { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.1fr); align-items: end; }
+  .op { padding-bottom: 7px; color: var(--muted); }
+  .total-out { display: block; height: 34px; padding: 5px 10px; border-radius: 9px; background: var(--soft); font-weight: 700; text-align: right; white-space: nowrap; }
+  .crust { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 10px; padding: 7px 10px; border-radius: 10px; background: var(--soft); font-size: .84rem; }
+  .crust label { font-weight: 600; color: var(--muted); }
+  .crust select { width: auto; height: 30px; padding: 3px 8px; }
+  .crust .unit { width: 118px; }
+  .crust input { height: 30px; }
+  .crust .h-note { font-size: .78rem; }
+  .size-total { color: var(--muted); }
+  .size-total b { color: var(--ink); }
+  .sizes { display: grid; gap: 6px; margin-top: 4px; }
+  .size, .size-head { display: grid; grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr) 12px minmax(0, 1.1fr) 30px; gap: 6px; align-items: center; }
+  .size-head { font-size: .75rem; font-weight: 600; color: var(--muted); }
+  .size .op { padding-bottom: 0; text-align: center; }
+  .size .s-weight { height: auto; padding: 0; background: none; text-align: left; font-weight: 600; color: var(--muted); }
+  .h-note { font-weight: 400; color: var(--muted); }
+  .ady-note { margin: 10px 0 0; padding: 8px 10px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: .84rem; }
+  .style-yeast { grid-template-columns: minmax(0, 1fr) auto; align-items: end; }
+  .pcts { grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); margin-top: 8px; }
+  details.tweak { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; background: var(--soft); }
+  details.tweak > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; cursor: pointer; list-style: none; font-size: .88rem; font-weight: 600; }
+  details.tweak > summary::-webkit-details-marker { display: none; }
+  details.tweak > summary::after { content: "Edit"; margin-left: auto; color: var(--accent-dark); font-size: .8rem; }
+  details.tweak[open] > summary::after { content: "Done"; }
+  details.tweak > summary span { font-weight: 400; color: var(--muted); font-size: .82rem; }
+  details.tweak .note:first-of-type { margin-top: 6px; }
+  .extras { display: grid; gap: 6px; margin-top: 8px; }
+  .extras:empty { display: none; }
+  .extra { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) 64px 30px; gap: 6px; align-items: center; }
+  .ferm-presets { margin-bottom: 8px; }
+
+  /* Segmented controls, chips, buttons */
+  .seg { display: inline-flex; gap: 2px; padding: 3px; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg label { padding: 3px 12px; line-height: 20px; border-radius: 7px; cursor: pointer; font-weight: 600; font-size: .88rem; color: var(--muted); white-space: nowrap; }
+  .seg input:checked + label { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .14); }
+  .seg input:disabled + label { opacity: .4; cursor: not-allowed; }
+  .seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .seg-sm label { padding: 2px 10px; line-height: 20px; font-size: .78rem; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font: inherit;
+    font-size: .8rem;
+    font-weight: 600;
+    padding: 4px 11px;
+    border-radius: 999px;
+    border: 1px solid var(--field);
+    background: var(--card);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .chip:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-dark); }
+  .chip:disabled { opacity: .45; cursor: not-allowed; }
+  .btn { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); cursor: pointer; }
+  .btn:hover { filter: brightness(1.06); }
+  .btn.ghost { background: transparent; border-color: var(--field); color: var(--ink); }
+  .icon-btn { width: 30px; height: 30px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; color: var(--muted); font-size: 1.15rem; line-height: 1; cursor: pointer; }
+  .icon-btn:hover:not(:disabled) { color: var(--err); border-color: var(--line); }
+  .icon-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+  /* Fermentation stages */
+  .stages { display: grid; gap: 6px; }
+  .stage { display: grid; grid-template-columns: 18px minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) 56px 30px; gap: 6px; align-items: center; }
+  .stages .stage { padding: 6px; border: 1px solid var(--line); border-left: 4px solid var(--field); border-radius: 10px; }
+  .stages .stage:has(.badge.cf) { border-left-color: var(--cf); }
+  .stages .stage:has(.badge.mid) { border-left-color: var(--mid); }
+  .stages .stage:has(.badge.rt) { border-left-color: var(--rt); }
+  .stage-head { padding: 0 10px; font-size: .7rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .stage .n { font-weight: 700; color: var(--muted); text-align: center; font-size: .85rem; }
+  .badge { display: block; text-align: center; font-size: .7rem; font-weight: 700; padding: 3px 0; border-radius: 6px; cursor: help; }
+  .badge.cf, .bar .cf { background: var(--cf-bg); color: var(--cf); }
+  .badge.mid, .bar .mid { background: var(--mid-bg); color: var(--mid); }
+  .badge.rt, .bar .rt { background: var(--rt-bg); color: var(--rt); }
+  .badge.na { background: var(--err-bg); color: var(--err); }
+  .stage-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 8px; font-size: .8rem; color: var(--muted); }
+  details.more { margin-top: 10px; font-size: .82rem; color: var(--muted); }
+  details.more > summary { cursor: pointer; font-weight: 600; }
+  details.more p { margin: 6px 0 0; }
+  .form-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .form-foot .note { margin: 0; }
+  .link-btn { padding: 0; border: 0; background: none; font: inherit; font-size: .8rem; font-weight: 600; color: var(--accent-dark); text-decoration: underline; cursor: pointer; }
+
+  /* Recipe */
+  .recipe-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .recipe-tools { display: flex; align-items: center; gap: 6px; }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .hero > div { background: var(--soft); border-radius: 12px; padding: 8px 12px; }
+  .hero > .yeast { background: var(--yeast-bg); }
+  .hero span { display: block; font-size: .75rem; color: var(--muted); }
+  .hero b { display: block; font-size: 1.4rem; line-height: 1.2; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  table.recipe { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  table.recipe th { font-size: .7rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); text-align: right; padding: 0 4px 6px; border-bottom: 1px solid var(--line); }
+  table.recipe td { padding: 7px 4px; text-align: right; border-bottom: 1px solid var(--line); }
+  table.recipe th:first-child, table.recipe td:first-child { text-align: left; }
+  table.recipe td:first-child { font-weight: 600; }
+  table.recipe td.g { font-size: 1.05rem; font-weight: 700; }
+  table.recipe td.pct { color: var(--muted); font-size: .85rem; }
+  table.recipe tr.zero td { color: var(--muted); font-weight: 400; opacity: .6; }
+  table.recipe tr.zero td.g { font-size: 1rem; }
+  table.recipe tr.yeast td { background: var(--yeast-bg); }
+  table.recipe tfoot td { border-bottom: none; font-weight: 700; color: var(--muted); font-size: .88rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 12px 0 0; padding: 0; }
+  .chips li { background: var(--soft); border-radius: 999px; padding: 3px 10px; font-size: .78rem; }
+  .chips li span { color: var(--muted); }
+  .copy-status { margin: 6px 0 0; font-size: .82rem; color: var(--ok); }
+  .copy-status:empty { display: none; }
+  .placeholder { margin: 0; padding: 28px 8px; text-align: center; color: var(--muted); }
+  .placeholder.small { padding: 12px 4px; font-size: .85rem; }
+  .messages { display: grid; gap: 8px; margin-bottom: 10px; }
+  .messages:empty { display: none; }
+  .msg { padding: 9px 12px; border-radius: 10px; font-size: .86rem; }
+  .msg.error { background: var(--err-bg); color: var(--err); }
+  .msg.warn { background: var(--warn-bg); color: var(--warn); }
+  .msg ul { margin: 4px 0 0; padding-left: 18px; }
+
+  /* Make log */
+  details.make { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  details.make > summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; font-size: .9rem; list-style: none; }
+  details.make > summary::-webkit-details-marker { display: none; }
+  details.make > summary::before { content: "+"; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-dark); font-weight: 700; }
+  details.make[open] > summary::before { content: "–"; }
+  .make-body { display: grid; gap: 10px; margin-top: 10px; }
+  .make-row { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: end; }
+  .make-body .note { margin: 0; }
+
+  /* Fermentation result */
+  .ferm-summary { margin: 6px 0 0; font-size: .88rem; }
+  .bar-label { display: flex; justify-content: space-between; font-size: .75rem; color: var(--muted); margin: 10px 0 3px; }
+  .bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; background: var(--soft); font-size: .7rem; font-weight: 700; }
+  .bar span { display: flex; align-items: center; justify-content: center; min-width: 2px; overflow: hidden; white-space: nowrap; border-right: 2px solid var(--card); }
+  .bar span:last-child { border-right: 0; }
+  dl.facts { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0 0; font-size: .86rem; color: var(--ink); }
+  dl.facts dt { color: var(--muted); }
+  dl.facts dd { margin: 0; font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+  .note { font-size: .8rem; color: var(--muted); margin: 8px 0 0; }
+  .note.err { color: var(--err); }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table.mini { width: 100%; border-collapse: collapse; font-size: .8rem; font-variant-numeric: tabular-nums; margin-top: 10px; color: var(--ink); }
+  table.mini th, table.mini td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  table.mini thead th { color: var(--muted); font-weight: 600; font-size: .72rem; }
+  table.mini .l { text-align: left; }
+  table.mini tr.hit td { background: var(--hit); color: var(--hit-ink); font-weight: 700; }
+  table.mini tfoot td { font-weight: 700; border-bottom: none; }
+
+  /* History + chart panels */
+  .panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
+  ul.history { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 8px; }
+  ul.history li.bake { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .bake-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .bake-head b { display: block; font-size: .92rem; overflow-wrap: anywhere; }
+  .bake-head .note { display: block; margin: 2px 0 0; }
+  .bake-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+  ul.makes { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+  ul.makes li { background: var(--soft); border-radius: 6px; padding: 5px 8px; }
+  table.chart { border-collapse: collapse; font-size: .75rem; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ink); margin-top: 8px; }
+  table.chart th, table.chart td { border: 1px solid var(--line); padding: 2px 5px; text-align: right; }
+  table.chart thead th { background: var(--soft); }
+  table.chart thead tr.active th { background: var(--accent-soft); color: var(--accent-dark); }
+  table.chart tbody th { background: var(--soft); position: sticky; left: 0; }
+  table.chart tbody th.on { background: var(--accent-soft); color: var(--accent-dark); }
+  table.chart thead th:first-child { position: sticky; left: 0; }
+  table.chart .hit { background: var(--hit) !important; color: var(--hit-ink); font-weight: 700; outline: 2px solid #d49b00; }
+  footer { color: var(--muted); font-size: .78rem; margin-top: 16px; }
+  footer a { color: inherit; }
+
+  /* Mobile result bar */
+  .mobile-bar { display: none; }
+
+  @media (min-width: 721px) {
+    .results { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+  }
+  @media (max-width: 720px) {
+    .layout { grid-template-columns: minmax(0, 1fr); }
+    .wrap { padding-bottom: 88px; }
+    .mobile-bar {
+      display: flex;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 10;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+      background: var(--card);
+      border-top: 1px solid var(--line);
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, .08);
+    }
+    .mobile-bar b { display: block; font-size: 1.05rem; }
+    .mobile-bar span { font-size: .8rem; color: var(--muted); }
+  }
+  @media (max-width: 520px) {
+    .tabs { width: 100%; }
+    .tabs button { flex: 1; }
+    .pcts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .style-yeast { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+    .style-yeast > :first-child { grid-column: 1 / -1; }
+    .make-row { grid-template-columns: minmax(0, 1fr); }
+    .hero b { font-size: 1.35rem; }
+    .stage-head { display: none; }
+    .stage {
+      grid-template-columns: 18px minmax(0, 1fr) minmax(0, 1fr) 56px;
+      grid-template-areas: "n name name del" ". temp hours badge";
+    }
+    .stage .n { grid-area: n; }
+    .stage .s-name { grid-area: name; }
+    .stage .u-temp { grid-area: temp; }
+    .stage .u-hours { grid-area: hours; }
+    .stage .badge { grid-area: badge; }
+    .stage .del { grid-area: del; justify-self: end; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <h1>Pizza Dough Calculator</h1>
+    <p>Yeast from the <a href="https://www.pizzamaking.com/forum/index.php?topic=26831.msg511590#msg511590" target="_blank" rel="noopener noreferrer">TXCraig1 expanded chart (PizzaMaking.com Reply #397)</a></p>
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button type="button" role="tab" id="tab-calc" data-tab="calc" aria-controls="panel-calc" aria-selected="true">Calculator</button>
+    <button type="button" role="tab" id="tab-history" data-tab="history" aria-controls="panel-history" aria-selected="false" tabindex="-1">History<span class="count" id="historyCount"></span></button>
+    <button type="button" role="tab" id="tab-chart" data-tab="chart" aria-controls="panel-chart" aria-selected="false" tabindex="-1">Chart</button>
+  </nav>
+</header>
+
+<noscript><div class="msg error">This calculator requires JavaScript.</div></noscript>
+
+<div class="layout" id="panel-calc" role="tabpanel" aria-labelledby="tab-calc" data-panel="calc">
+  <form class="card" id="calcForm" novalidate>
+    <section class="step" aria-labelledby="h-qty">
+      <div class="step-head">
+        <h2 class="step-title" id="h-qty"><span class="num">1</span><span>How much dough?<small>How many pizzas, and how big</small></span></h2>
+        <div class="seg seg-sm" role="radiogroup" aria-label="Size dough by">
+          <input type="radio" name="qtyMode" id="qm-ball" value="ball"><label for="qm-ball">By weight</label>
+          <input type="radio" name="qtyMode" id="qm-size" value="size"><label for="qm-size">By size</label>
+        </div>
+      </div>
+      <div class="grid qty" id="qtyBall">
+        <div><label class="lbl" for="balls">Pizzas</label><input id="balls" type="number" min="1" step="1" inputmode="numeric"></div>
+        <span class="op" aria-hidden="true">×</span>
+        <div><label class="lbl" for="ballWeight">Dough each</label><div class="unit"><input id="ballWeight" type="number" min="0" step="any" inputmode="decimal"><span>g</span></div></div>
+        <span class="op" aria-hidden="true">=</span>
+        <div><span class="lbl">Total</span><output class="total-out" id="totalWeight" for="balls ballWeight">–</output></div>
+      </div>
+      <div id="qtySize" hidden>
+        <div class="size-head" aria-hidden="true"><span>Pizzas</span><span></span><span>Diameter</span><span></span><span>Dough each</span><span></span></div>
+        <div class="sizes" id="sizes"></div>
+        <div class="stage-foot">
+          <button type="button" class="chip" id="btnAddSize">+ Add a size</button>
+        </div>
+        <div class="crust">
+          <label for="tfStyle">Crust</label>
+          <select id="tfStyle"></select>
+          <div class="unit wide" id="tfField"><input id="tf" type="number" min="0" step="any" inputmode="decimal" aria-label="Thickness factor" title="Thickness factor: ounces of dough per square inch"><span>oz/in²</span></div>
+          <span class="h-note" id="tfRange"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="step" aria-labelledby="h-form">
+      <div class="step-head">
+        <h2 class="step-title" id="h-form"><span class="num">2</span><span>What kind of pizza?<small>Pick a style; the ingredients fill in for you</small></span></h2>
+      </div>
+      <div class="grid style-yeast">
+        <div>
+          <label class="lbl" for="doughStyle">Style</label>
+          <select id="doughStyle">
+            <option value="neapolitan">Neapolitan</option>
+            <option value="ny">NY street slice</option>
+            <option value="nyElite">Elite NY slice</option>
+            <option value="american">American</option>
+            <option value="chicago">Chicago deep dish</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div>
+          <span class="lbl" id="lbl-yeast">Yeast</span>
+          <div class="seg" role="radiogroup" aria-labelledby="lbl-yeast">
+            <input type="radio" name="yeastType" id="yt-idy" value="IDY"><label for="yt-idy" title="Instant Dry Yeast (IDY)">Instant</label>
+            <input type="radio" name="yeastType" id="yt-ady" value="ADY"><label for="yt-ady" title="Active Dry Yeast (ADY)">Active dry</label>
+          </div>
+        </div>
+      </div>
+      <details class="tweak" id="formulaDetails">
+        <summary>Ingredients <span id="formulaSummary"></span></summary>
+        <p class="note">Baker's percentages: each ingredient as a % of the flour weight.</p>
+        <div class="grid pcts">
+          <div><label class="lbl" for="hydration">Water</label><div class="unit"><input id="hydration" type="number" min="0" step="any" inputmode="decimal"><span>%</span></div></div>
+          <div><label class="lbl" for="salt">Salt</label><div class="unit"><input id="salt" type="number" min="0" step="any" inputmode="decimal"><span>%</span></div></div>
+          <div class="opt-ing"><label class="lbl" for="oil">Olive oil</label><div class="unit"><input id="oil" type="number" min="0" step="any" inputmode="decimal"><span>%</span></div></div>
+          <div class="opt-ing"><label class="lbl" for="sugar">Sugar</label><div class="unit"><input id="sugar" type="number" min="0" step="any" inputmode="decimal"><span>%</span></div></div>
+          <div><label class="lbl" for="yeastAdj" title="More or less yeast than the chart: +10% turns 1 g into 1.1 g. Chart timings assume 0%.">Yeast +/−</label><div class="unit"><input id="yeastAdj" type="number" min="-90" max="200" step="any"><span>%</span></div></div>
+        </div>
+        <p class="note" id="styleNote" hidden></p>
+        <div class="extras" id="extras"></div>
+        <div class="stage-foot">
+          <button type="button" class="chip" id="btnAddExtra">+ Add ingredient</button>
+          <span>Extras by % of flour or by grams</span>
+        </div>
+      </details>
+    </section>
+
+    <section class="step" aria-labelledby="h-ferm">
+      <div class="step-head">
+        <h2 class="step-title" id="h-ferm"><span class="num">3</span><span>When will you bake?<small>Where the dough rests, and for how long</small></span></h2>
+      </div>
+      <div class="presets ferm-presets" role="group" aria-label="Schedule presets">
+        <button type="button" class="chip" data-preset="rt">Room temp</button>
+        <button type="button" class="chip" data-preset="ct">Fridge</button>
+        <button type="button" class="chip" data-preset="rtct">Room → Fridge</button>
+        <button type="button" class="chip" data-preset="rtctrt">Room → Fridge → Room</button>
+      </div>
+      <div class="stage stage-head" aria-hidden="true"><span></span><span>Step</span><span>Temp</span><span>Time</span><span></span><span></span></div>
+      <div class="stages" id="stages"></div>
+      <div class="stage-foot">
+        <button type="button" class="chip" id="btnAddStage">+ Add a step</button>
+        <span id="stageInfo"></span>
+      </div>
+      <details class="more">
+        <summary>How this works · cooling down &amp; warming up</summary>
+        <p>Each stage uses up part of the fermentation: its hours ÷ the chart hours at that temperature for a given yeast column. Following Craig's multi-temperature method, every stage is converted to equivalent hours at the Stage 1 temperature and the published yeast % whose Stage 1 chart time is nearest is chosen (ties go to the lower %). A single stage is a plain chart lookup. Nothing is extrapolated.</p>
+        <p>Temperatures are <b>ambient</b> (air), as in the chart. Below 40 °F = cold fermentation (CF), 40–54 °F = intermediate (INT), 55–80 °F = room temperature (RT).</p>
+        <p><b>Cool-down (RT → CT):</b> dough takes a few hours to chill, so it ferments a little faster at first than the CT row assumes.</p>
+        <p><b>Warm-up (CT → RT):</b> the reverse: cold dough ferments slower than the RT row assumes until it warms up. Enter the warm-up as its own stage at room temperature (the RT → CT → RT preset does this). That slightly overstates the warm-up's fermentation, so the calculator leans toward a little less yeast.</p>
+        <p>The two effects partly cancel and are small next to the chart's cold-fermentation error. For more precision, split a transition into a short in-between stage at the temperature you actually measure.</p>
+      </details>
+    </section>
+
+    <div class="form-foot">
+      <span class="note">The recipe updates as you type.</span>
+      <button type="button" class="link-btn" id="btnReset">Reset to defaults</button>
+    </div>
+  </form>
+
+  <div class="results">
+    <section class="card" id="recipeCard" aria-labelledby="h-recipe">
+      <div class="recipe-head">
+        <h2 class="label" id="h-recipe">Recipe</h2>
+        <div class="recipe-tools">
+          <div class="seg seg-sm" role="radiogroup" aria-label="Show amounts">
+            <input type="radio" name="recipeView" id="rv-total" value="total" checked><label for="rv-total">Total</label>
+            <input type="radio" name="recipeView" id="rv-ball" value="ball"><label for="rv-ball">Per pizza</label>
+          </div>
+          <button type="button" class="chip" id="btnCopy" disabled>Copy</button>
+        </div>
+      </div>
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <p class="placeholder" id="placeholder">Enter your dough details to see the recipe.</p>
+      <div id="recipeOut" hidden>
+        <div class="hero">
+          <div class="yeast"><span id="heroYeastLbl"></span><b id="heroYeast"></b></div>
+          <div><span id="heroTotalLbl"></span><b id="heroTotal"></b></div>
+        </div>
+        <table class="recipe" id="recipeTable">
+          <thead><tr><th scope="col">Ingredient</th><th scope="col">%</th><th scope="col" id="gramsHead">Total</th></tr></thead>
+          <tbody id="recipeBody"></tbody>
+          <tfoot><tr><td>Total</td><td></td><td id="recipeTotal"></td></tr></tfoot>
+        </table>
+        <p class="note" id="divideNote" hidden></p>
+        <p class="ady-note" id="adyNote" hidden></p>
+      </div>
+      <p class="copy-status" id="copyStatus" role="status" aria-live="polite"></p>
+
+      <details class="make" id="makeCard" hidden>
+        <summary>Made it? Log feedback</summary>
+        <div class="make-body">
+          <p class="note" id="makeMatch"></p>
+          <div>
+            <label class="lbl" for="bakeName">Name</label>
+            <input id="bakeName" type="text" maxlength="80">
+          </div>
+          <div class="grid make-row">
+            <div><label class="lbl" for="makeDate">Made on</label><input id="makeDate" type="date"></div>
+            <div>
+              <span class="lbl" id="lbl-proof">Fermentation</span>
+              <div class="seg seg-sm" role="radiogroup" aria-labelledby="lbl-proof">
+                <input type="radio" name="proof" id="pf-under" value="under"><label for="pf-under">Under</label>
+                <input type="radio" name="proof" id="pf-right" value="right"><label for="pf-right">Just right</label>
+                <input type="radio" name="proof" id="pf-over" value="over"><label for="pf-over">Over</label>
+              </div>
+            </div>
+            <div>
+              <label class="lbl" for="makeRating">Rating</label>
+              <select id="makeRating">
+                <option value="">–</option>
+                <option value="5">★★★★★</option>
+                <option value="4">★★★★☆</option>
+                <option value="3">★★★☆☆</option>
+                <option value="2">★★☆☆☆</option>
+                <option value="1">★☆☆☆☆</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="lbl" for="makeNotes">Notes</label>
+            <textarea id="makeNotes" rows="3" maxlength="2000" placeholder="Actual room temp, flour, how it handled, bake result, what to change next time…"></textarea>
+          </div>
+          <div><button type="button" class="btn" id="btnSaveMake">Save to history</button></div>
+          <p class="copy-status" id="makeStatus" role="status" aria-live="polite"></p>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="fermCard" aria-labelledby="h-fplan" hidden>
+      <h2 class="label" id="h-fplan">Fermentation</h2>
+      <p class="ferm-summary" id="fermSummary"></p>
+      <div id="fermBars">
+        <div class="bar-label"><span>Clock time</span><span id="clockLabel"></span></div>
+        <div class="bar" id="barClock"></div>
+        <div class="bar-label"><span>Share of fermentation</span><span id="fermLabel"></span></div>
+        <div class="bar" id="barFerm"></div>
+      </div>
+      <details class="more">
+        <summary>TXCraig1 lookup details</summary>
+        <dl class="facts" id="lookupList"></dl>
+        <div class="scroll"><table class="mini" id="calcTable"></table></div>
+        <p class="note" id="lookupNote"></p>
+        <details class="more">
+          <summary>All published columns checked</summary>
+          <div class="scroll"><table class="mini" id="candTable"></table></div>
+        </details>
+      </details>
+    </section>
+  </div>
+</div>
+
+<section class="card" id="panel-history" role="tabpanel" aria-labelledby="tab-history" data-panel="history" hidden>
+  <div class="panel-head">
+    <h2 class="label">History</h2>
+    <div class="presets">
+      <button type="button" class="chip" id="btnExport">Export</button>
+      <button type="button" class="chip" id="btnImport">Import</button>
+      <input type="file" id="importFile" accept="application/json,.json" hidden>
+    </div>
+  </div>
+  <p class="note">Saved in this browser. Export to back up or move to another device; Import merges into what's here.</p>
+  <p class="placeholder small" id="historyEmpty">No saved doughs yet. Make a recipe, then use “Made it? Log feedback”.</p>
+  <ul class="history" id="historyList"></ul>
+  <p class="note" id="historyStatus" role="status" aria-live="polite"></p>
+</section>
+
+<section class="card" id="panel-chart" role="tabpanel" aria-labelledby="tab-chart" data-panel="chart" hidden>
+  <h2 class="label">TXCraig1 expanded chart · hours to ferment</h2>
+  <p class="note" id="chartStatus"></p>
+  <div class="scroll" id="fullChart"></div>
+</section>
+
+<footer>
+  <p>Chart source: TXCraig1, Yeast Quantity Prediction Model, expanded chart,
+    <a href="https://www.pizzamaking.com/forum/index.php?topic=26831.msg511590#msg511590" rel="noopener noreferrer">PizzaMaking.com Reply #397</a>.
+    Values are transcribed exactly; blank chart cells are left blank. Predictions are a starting point, especially for cold fermentation; watch the dough.</p>
+</footer>
+</div>
+
+<div class="mobile-bar" id="mobileBar" hidden>
+  <div><b id="mbYeast"></b><span id="mbTotal"></span></div>
+  <button type="button" class="btn" id="btnJump">View recipe</button>
+</div>
+
+<script>
+'use strict';
+
+/* ======================================================================
+   STAGE 0 - EMBEDDED TXCraig1 CHART (source of truth)
+   ====================================================================== */
+
+const _ = null; // blank cell in the published chart
+
+// The published chart has ONE hours grid shared by two header rows (ADY % and IDY %).
+// Row key = °F, entries = fermentation hours in header-column order (27 columns).
+const TXCRAIG_HOURS = Object.freeze({
+  35: Object.freeze([_,   _,   _,   _,   _,   _,   _,   _,   _,   _,   167, 136, 115, 101, 90,  82,  70,  61,  54,  49,  45,  42,  39,  37,  35,  33,  31]),
+  36: Object.freeze([_,   _,   _,   _,   _,   _,   _,   _,   _,   _,   149, 121, 103, 90,  80,  73,  62,  54,  49,  44,  40,  37,  35,  33,  31,  29,  28]),
+  37: Object.freeze([_,   _,   _,   _,   _,   _,   _,   _,   _,   _,   133, 108, 92,  80,  72,  65,  55,  49,  43,  39,  36,  33,  31,  29,  28,  26,  25]),
+  38: Object.freeze([_,   _,   _,   _,   _,   _,   _,   _,   _,   161, 120, 97,  82,  72,  65,  59,  50,  44,  39,  35,  32,  30,  28,  26,  25,  24,  22]),
+  39: Object.freeze([_,   _,   _,   _,   _,   _,   _,   _,   159, 145, 108, 87,  74,  65,  58,  53,  45,  39,  35,  32,  29,  27,  25,  24,  22,  21,  20]),
+  40: Object.freeze([_,   _,   _,   _,   _,   _,   _,   161, 144, 130, 97,  79,  67,  59,  52,  48,  40,  35,  32,  29,  26,  24,  23,  21,  20,  19,  18]),
+  41: Object.freeze([_,   _,   _,   _,   _,   _,   165, 145, 130, 118, 88,  71,  61,  53,  47,  43,  37,  32,  29,  26,  24,  22,  21,  19,  18,  17,  16]),
+  42: Object.freeze([_,   _,   _,   _,   _,   _,   151, 132, 118, 107, 80,  65,  55,  48,  43,  39,  33,  29,  26,  24,  22,  20,  19,  18,  17,  16,  15]),
+  43: Object.freeze([_,   _,   _,   _,   _,   161, 137, 120, 107, 97,  72,  59,  50,  44,  39,  35,  30,  26,  24,  21,  20,  18,  17,  16,  15,  14,  14]),
+  44: Object.freeze([_,   _,   _,   _,   _,   147, 125, 109, 98,  88,  66,  53,  45,  40,  36,  32,  27,  24,  21,  19,  18,  17,  15,  14,  14,  13,  12]),
+  45: Object.freeze([_,   _,   _,   _,   165, 134, 114, 100, 89,  81,  60,  49,  41,  36,  32,  29,  25,  22,  20,  18,  16,  15,  14,  13,  12,  12,  11]),
+  46: Object.freeze([_,   _,   _,   _,   151, 122, 104, 91,  81,  74,  55,  45,  38,  33,  30,  27,  23,  20,  18,  16,  15,  14,  13,  12,  11,  11,  10]),
+  47: Object.freeze([_,   _,   _,   _,   138, 112, 95,  83,  74,  67,  50,  41,  35,  30,  27,  25,  21,  18,  16,  15,  14,  13,  12,  11,  10,  10,  9]),
+  48: Object.freeze([_,   _,   _,   _,   126, 102, 87,  76,  68,  62,  46,  37,  32,  28,  25,  23,  19,  17,  15,  14,  12,  12,  11,  10,  10,  9,   9]),
+  49: Object.freeze([_,   _,   _,   156, 116, 94,  80,  70,  63,  57,  42,  34,  29,  26,  23,  21,  18,  15,  14,  12,  11,  11,  10,  9,   9,   8,   8]),
+  50: Object.freeze([_,   _,   _,   143, 107, 86,  74,  64,  58,  52,  39,  32,  27,  23,  21,  19,  16,  14,  13,  11,  11,  10,  9,   9,   8,   8,   7]),
+  51: Object.freeze([_,   _,   _,   132, 98,  80,  68,  59,  53,  48,  36,  29,  25,  22,  19,  18,  15,  13,  12,  11,  10,  9,   8,   8,   7,   7,   7]),
+  52: Object.freeze([_,   _,   _,   122, 90,  73,  62,  55,  49,  44,  33,  27,  23,  20,  18,  16,  14,  12,  11,  10,  9,   8,   8,   7,   7,   6,   6]),
+  53: Object.freeze([_,   _,   163, 112, 84,  68,  58,  50,  45,  41,  30,  25,  21,  18,  16,  15,  13,  11,  10,  9,   8,   8,   7,   7,   6,   6,   6]),
+  54: Object.freeze([_,   _,   150, 104, 77,  63,  53,  47,  42,  38,  28,  23,  19,  17,  15,  14,  12,  10,  9,   8,   8,   7,   7,   6,   6,   6,   5]),
+  55: Object.freeze([_,   _,   139, 96,  71,  58,  49,  43,  39,  35,  26,  21,  18,  16,  14,  13,  11,  9,   8,   8,   7,   7,   6,   6,   5,   5,   5]),
+  56: Object.freeze([_,   _,   129, 89,  66,  54,  46,  40,  36,  32,  24,  20,  17,  15,  13,  12,  10,  9,   8,   7,   7,   6,   6,   5,   5,   5,   5]),
+  57: Object.freeze([_,   161, 120, 82,  61,  50,  42,  37,  33,  30,  22,  18,  15,  14,  12,  11,  9,   8,   7,   7,   6,   6,   5,   5,   5,   4,   4]),
+  58: Object.freeze([_,   149, 111, 77,  57,  46,  39,  34,  31,  28,  21,  17,  14,  13,  11,  10,  9,   8,   7,   6,   6,   5,   5,   5,   4,   4,   4]),
+  59: Object.freeze([_,   139, 103, 71,  53,  43,  37,  32,  29,  26,  19,  16,  13,  12,  10,  9,   8,   7,   6,   6,   5,   5,   5,   4,   4,   4,   4]),
+  60: Object.freeze([_,   129, 96,  66,  49,  40,  34,  30,  27,  24,  18,  15,  12,  11,  10,  9,   7,   7,   6,   5,   5,   5,   4,   4,   4,   4,   3]),
+  61: Object.freeze([_,   120, 90,  62,  46,  37,  32,  28,  25,  22,  17,  14,  12,  10,  9,   8,   7,   6,   5,   5,   5,   4,   4,   4,   3,   3,   3]),
+  62: Object.freeze([_,   112, 83,  58,  43,  35,  30,  26,  23,  21,  16,  13,  11,  9,   8,   8,   6,   6,   5,   5,   4,   4,   4,   3,   3,   3,   3]),
+  63: Object.freeze([_,   105, 78,  54,  40,  32,  28,  24,  22,  20,  15,  12,  10,  9,   8,   7,   6,   5,   5,   4,   4,   4,   3,   3,   3,   3,   3]),
+  64: Object.freeze([162, 98,  73,  50,  37,  30,  26,  23,  20,  18,  14,  11,  9,   8,   7,   7,   6,   5,   4,   4,   4,   3,   3,   3,   3,   3,   3]),
+  65: Object.freeze([152, 92,  68,  47,  35,  28,  24,  21,  19,  17,  13,  10,  9,   8,   7,   6,   5,   5,   4,   4,   3,   3,   3,   3,   3,   3,   2]),
+  66: Object.freeze([142, 86,  64,  44,  33,  27,  23,  20,  18,  16,  12,  10,  8,   7,   6,   6,   5,   4,   4,   4,   3,   3,   3,   3,   2,   2,   2]),
+  67: Object.freeze([133, 80,  60,  41,  31,  25,  21,  19,  17,  15,  11,  9,   8,   7,   6,   5,   5,   4,   4,   3,   3,   3,   3,   2,   2,   2,   2]),
+  68: Object.freeze([120, 73,  54,  37,  28,  22,  19,  17,  15,  14,  10,  8,   7,   6,   5,   5,   4,   4,   3,   3,   3,   3,   2,   2,   2,   2,   2]),
+  69: Object.freeze([109, 66,  49,  34,  25,  20,  17,  15,  14,  12,  9,   7,   6,   6,   5,   4,   4,   3,   3,   3,   2,   2,   2,   2,   2,   2,   2]),
+  70: Object.freeze([99,  60,  45,  31,  23,  19,  16,  14,  12,  11,  8,   7,   6,   5,   4,   4,   3,   3,   3,   2,   2,   2,   2,   2,   2,   2,   2]),
+  71: Object.freeze([90,  55,  41,  28,  21,  17,  14,  13,  11,  10,  8,   6,   5,   5,   4,   4,   3,   3,   2,   2,   2,   2,   2,   2,   2,   1,   1]),
+  72: Object.freeze([83,  50,  37,  26,  19,  15,  13,  12,  10,  9,   7,   6,   5,   4,   4,   3,   3,   3,   2,   2,   2,   2,   2,   2,   1,   1,   1]),
+  73: Object.freeze([76,  46,  34,  24,  18,  14,  12,  11,  9,   9,   6,   5,   4,   4,   3,   3,   3,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1]),
+  74: Object.freeze([70,  42,  32,  22,  16,  13,  11,  10,  9,   8,   6,   5,   4,   4,   3,   3,   2,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1]),
+  75: Object.freeze([65,  39,  29,  20,  15,  12,  10,  9,   8,   7,   5,   4,   4,   3,   3,   3,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1,   1]),
+  76: Object.freeze([60,  36,  27,  19,  14,  11,  10,  8,   7,   7,   5,   4,   3,   3,   3,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1,   1,   1]),
+  77: Object.freeze([56,  34,  25,  17,  13,  10,  9,   8,   7,   6,   5,   4,   3,   3,   3,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1,   1,   1]),
+  78: Object.freeze([52,  31,  23,  16,  12,  10,  8,   7,   6,   6,   4,   4,   3,   3,   2,   2,   2,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1]),
+  79: Object.freeze([48,  29,  22,  15,  11,  9,   8,   7,   6,   5,   4,   3,   3,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1]),
+  80: Object.freeze([45,  27,  20,  14,  10,  8,   7,   6,   6,   5,   4,   3,   3,   2,   2,   2,   2,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1])
+});
+
+const TXCRAIG_DATA = Object.freeze({
+  ADY: Object.freeze({
+    percentages: Object.freeze([
+      0.004, 0.008, 0.013, 0.021, 0.032, 0.042, 0.053, 0.063, 0.074,
+      0.084, 0.126, 0.168, 0.21,  0.252, 0.294, 0.336, 0.42,  0.504,
+      0.588, 0.672, 0.756, 0.84,  0.924, 1.008, 1.092, 1.176, 1.26
+    ]),
+    temperatures: TXCRAIG_HOURS
+  }),
+  IDY: Object.freeze({
+    percentages: Object.freeze([
+      0.003, 0.006, 0.01,  0.016, 0.024, 0.032, 0.04,  0.048, 0.056,
+      0.064, 0.096, 0.128, 0.16,  0.192, 0.224, 0.256, 0.32,  0.384,
+      0.448, 0.512, 0.576, 0.64,  0.704, 0.768, 0.832, 0.896, 0.96
+    ]),
+    temperatures: TXCRAIG_HOURS
+  })
+});
+
+const CHART_COLUMNS = 27;
+const CHART_TEMPS = Object.keys(TXCRAIG_HOURS).map(Number).sort((a, b) => a - b);
+
+function validateChart(data) {
+  const errors = [];
+  for (const type of ['ADY', 'IDY']) {
+    const d = data[type];
+    if (!d || !Array.isArray(d.percentages) || !d.temperatures) {
+      errors.push(`${type}: chart data is missing.`);
+      continue;
+    }
+    const pct = d.percentages;
+    if (pct.length !== CHART_COLUMNS) {
+      errors.push(`${type}: expected ${CHART_COLUMNS} percentage headers, found ${pct.length}.`);
+    }
+    pct.forEach((p, i) => {
+      if (typeof p !== 'number' || !(p > 0)) errors.push(`${type}: percentage header ${i + 1} is missing or invalid.`);
+      else if (i > 0 && !(p > pct[i - 1])) errors.push(`${type}: percentage header ${i + 1} (${p}) is not greater than the previous header.`);
+    });
+
+    const temps = Object.keys(d.temperatures).map(Number).sort((a, b) => a - b);
+    if (!temps.length) errors.push(`${type}: no temperature rows.`);
+    temps.forEach((tf, k) => {
+      if (k > 0 && tf !== temps[k - 1] + 1) errors.push(`${type}: temperature gap between ${temps[k - 1]} °F and ${tf} °F.`);
+      const row = d.temperatures[tf];
+      if (!Array.isArray(row) || row.length !== pct.length) {
+        errors.push(`${type} ${tf} °F: expected ${pct.length} entries, found ${row ? row.length : 0}.`);
+        return;
+      }
+      const above = k > 0 ? d.temperatures[temps[k - 1]] : null;
+      let seenValue = false;
+      row.forEach((h, i) => {
+        if (h === null) {
+          if (seenValue) errors.push(`${type} ${tf} °F: blank cell after published values at column ${i + 1} (possible shift).`);
+          else if (above && above[i] !== null) errors.push(`${type} ${tf} °F: blank at column ${i + 1} but ${temps[k - 1]} °F has a value (possible shift).`);
+          return;
+        }
+        if (!Number.isInteger(h) || h <= 0) errors.push(`${type} ${tf} °F: invalid hours "${h}" at column ${i + 1}.`);
+        seenValue = true;
+        if (i > 0 && row[i - 1] !== null && h > row[i - 1]) {
+          errors.push(`${type} ${tf} °F: hours rise from ${row[i - 1]} to ${h} at column ${i + 1} (possible shifted value).`);
+        }
+        if (above && above[i] !== null && h > above[i]) {
+          errors.push(`${type} ${tf} °F: ${h} h at column ${i + 1} exceeds ${above[i]} h at ${temps[k - 1]} °F (possible shifted value).`);
+        }
+      });
+      if (!seenValue) errors.push(`${type} ${tf} °F: row has no published values.`);
+    });
+  }
+  const a = data.ADY && data.ADY.percentages;
+  const b = data.IDY && data.IDY.percentages;
+  if (a && b) {
+    if (a === b) errors.push('ADY and IDY must have separate percentage headers.');
+    else a.forEach((p, i) => { if (p === b[i]) errors.push(`ADY and IDY headers are identical at column ${i + 1}.`); });
+  }
+  return errors;
+}
+
+const chartErrors = validateChart(TXCRAIG_DATA);
+
+/* ======================================================================
+   STAGE 1 - FERMENTATION MODEL: stage schedule -> yeast percentage (chart lookup only)
+   ====================================================================== */
+
+const MAX_STAGES = 10;
+const EPS = 1e-9;
+const T_MIN = CHART_TEMPS[0];
+const T_MAX = CHART_TEMPS[CHART_TEMPS.length - 1];
+
+// Craig's temperature classes (ambient): below 40 °F CF, 40–54 °F intermediate, 55–80 °F RT.
+function tempClass(tf) {
+  return tf < 40 ? 'cf' : tf < 55 ? 'mid' : 'rt';
+}
+const CLASS_SHORT = { cf: 'CF', mid: 'INT', rt: 'RT' };
+const CLASS_FRIENDLY = { cf: 'Fridge', mid: 'Cool', rt: 'Room' };
+const CLASS_LONG = {
+  cf: 'Cold fermentation (below 40 °F)',
+  mid: 'Intermediate range (40–54 °F), rarely used',
+  rt: 'Room temperature (55–80 °F)'
+};
+
+// Per column, each stage uses hours / chartHours(temp) of the fermentation. Converting all stages to
+// Stage-1-temperature hours (Craig's backward walk) and comparing with that column's Stage 1 chart time
+// picks the nearest published entry; with one stage this is exactly the plain nearest-time lookup.
+function lookupSchedule(type, stages) {
+  if (chartErrors.length) {
+    return { ok: false, error: 'The embedded TXCraig1 chart failed validation, so yeast cannot be calculated.' };
+  }
+  const d = TXCRAIG_DATA[type];
+  if (!d) return { ok: false, error: `Unsupported yeast type "${type}". Only IDY and ADY are supported.` };
+  if (!Array.isArray(stages) || stages.length < 1 || stages.length > MAX_STAGES) {
+    return { ok: false, error: `A schedule needs 1–${MAX_STAGES} stages.` };
+  }
+  for (const [k, s] of stages.entries()) {
+    if (!Object.prototype.hasOwnProperty.call(d.temperatures, s.tempF)) {
+      return { ok: false, error: `Stage ${k + 1}: ${s.tempF} °F is not in the TXCraig1 chart (${T_MIN}–${T_MAX} °F).` };
+    }
+    if (!(s.hours > 0)) return { ok: false, error: `Stage ${k + 1}: duration must be greater than zero.` };
+  }
+
+  const refRow = d.temperatures[stages[0].tempF];
+  const candidates = [];
+  for (let i = 0; i < CHART_COLUMNS; i++) {
+    const cells = stages.map(s => d.temperatures[s.tempF][i]);
+    if (cells.some(h => h === null)) continue;
+    const refHours = refRow[i];
+    const parts = stages.map((s, k) => ({
+      ...s,
+      chartHours: cells[k],
+      share: s.hours / cells[k],
+      refEquiv: s.hours * refHours / cells[k]
+    }));
+    const reached = parts.reduce((a, p) => a + p.share, 0);
+    const equivHours = parts.reduce((a, p) => a + p.refEquiv, 0);
+    candidates.push({
+      index: i,
+      percentage: d.percentages[i],
+      parts,
+      reached,
+      refHours,
+      equivHours,
+      diff: Math.abs(equivHours - refHours)
+    });
+  }
+
+  const tempsText = [...new Set(stages.map(s => s.tempF))].sort((a, b) => a - b).map(t => `${t} °F`).join(', ');
+  if (!candidates.length) {
+    return { ok: false, error: `No published ${type} column has a value at every stage temperature (${tempsText}).` };
+  }
+  const lo = candidates.reduce((a, c) => (c.reached < a.reached ? c : a));
+  const hi = candidates.reduce((a, c) => (c.reached > a.reached ? c : a));
+  if (lo.reached > 1 + EPS) {
+    return {
+      ok: false,
+      error: `Over-fermented even with the lowest published ${type} % that has values at ${tempsText} (${lo.percentage}%): this schedule uses ${fmtPct(lo.reached)} of that column's chart time. Shorten the warm stages or lower a temperature. The chart is not extrapolated.`
+    };
+  }
+  if (hi.reached < 1 - EPS) {
+    return {
+      ok: false,
+      error: `Under-fermented even with the highest published ${type} % (${hi.percentage}%): this schedule uses only ${fmtPct(hi.reached)} of that column's chart time. Lengthen a stage or raise a temperature. The chart is not extrapolated.`
+    };
+  }
+
+  // Candidates ascend in yeast %, so keeping the first of equal differences picks the lower %.
+  let best = null;
+  for (const c of candidates) if (best === null || c.diff < best.diff - EPS) best = c;
+  const ties = candidates.filter(c => Math.abs(c.diff - best.diff) <= EPS);
+
+  const warnings = [];
+  if (stages.some(s => tempClass(s.tempF) === 'cf')) {
+    warnings.push('Cold-fermentation stage (below 40 °F): Craig notes that predictions at low temperatures have much larger margins of error. Treat the yeast amount as a starting point and watch the dough.');
+  }
+  if (stages.some(s => tempClass(s.tempF) === 'mid')) {
+    warnings.push('A stage is in the 40–54 °F intermediate range, which Craig notes is rarely used. Check the dough as it goes.');
+  }
+
+  return {
+    ok: true,
+    type,
+    stages,
+    refTempF: stages[0].tempF,
+    best,
+    ties,
+    candidates,
+    warnings,
+    percentage: best.percentage,
+    index: best.index
+  };
+}
+
+/* ======================================================================
+   STAGE 2 - DOUGH FORMULATION: baker's percentages -> grams
+   ====================================================================== */
+
+// Explicit user scaling of the chart result; kept out of lookupSchedule so the chart stays verifiable.
+const YEAST_ADJ_MIN = -90;
+const YEAST_ADJ_MAX = 200;
+function adjustYeast(chartPct, adjPct) {
+  return chartPct * (1 + adjPct / 100);
+}
+
+// Extras in % join the baker's-% total; extras in grams are taken off the dough weight first.
+function calculateDough(f, yeastPct) {
+  const extras = f.extras || [];
+  const extraPct = extras.reduce((a, x) => a + (x.unit === 'pct' ? x.amount : 0), 0);
+  const extraGrams = extras.reduce((a, x) => a + (x.unit === 'g' ? x.amount : 0), 0);
+  const P = 100 + f.hydration + f.salt + f.oil + f.sugar + yeastPct + extraPct;
+  const flour = (f.totalWeight - extraGrams) * 100 / P;
+  return {
+    totalPct: P,
+    flour,
+    water: flour * f.hydration / 100,
+    salt: flour * f.salt / 100,
+    oil: flour * f.oil / 100,
+    sugar: flour * f.sugar / 100,
+    yeast: flour * yeastPct / 100,
+    extras: extras.map(x => x.unit === 'g'
+      ? { name: x.name, unit: 'g', grams: x.amount, pct: x.amount / flour * 100 }
+      : { name: x.name, unit: 'pct', grams: flour * x.amount / 100, pct: x.amount })
+  };
+}
+
+/* ======================================================================
+   INPUT HANDLING
+   ====================================================================== */
+
+// Thickness-factor ranges (oz/in²) per style; Neapolitan is flour, water, salt and yeast only; NY styles prefill oil/sugar.
+const STYLES = Object.freeze({
+  neapolitan: { label: 'Neapolitan', oilSugar: false, tf: [0.07, 0.08] },
+  ny: { label: 'NY street slice', oilSugar: true, tf: [0.085, 0.105], oil: 3, sugar: 2 },
+  nyElite: { label: 'Elite NY slice', oilSugar: true, tf: [0.065, 0.085], oil: 3, sugar: 2 },
+  american: { label: 'American', oilSugar: true, tf: [0.12, 0.14] },
+  chicago: { label: 'Chicago deep dish', oilSugar: true, tf: [0.11, 0.135] },
+  custom: { label: 'Custom', oilSugar: true, tf: null }
+});
+const OZ_TO_G = 28.3495;
+const MAX_SIZES = 6;
+const MAX_EXTRAS = 8;
+const tfMid = r => +((r[0] + r[1]) / 2).toFixed(4);
+
+function ballWeightFromSize(diameterIn, tf) {
+  return (diameterIn / 2) ** 2 * Math.PI * tf * OZ_TO_G;
+}
+
+const PRESETS = Object.freeze({
+  rt: [{ name: 'Room temp', tempF: 70, hours: 24 }],
+  ct: [{ name: 'Cold', tempF: 38, hours: 72 }],
+  rtct: [{ name: 'Bulk', tempF: 70, hours: 2 }, { name: 'Cold (balls)', tempF: 38, hours: 48 }],
+  rtctrt: [
+    { name: 'Bulk', tempF: 70, hours: 2 },
+    { name: 'Cold (balls)', tempF: 38, hours: 48 },
+    { name: 'Warm-up', tempF: 70, hours: 3 }
+  ]
+});
+
+const DEFAULTS = Object.freeze({
+  qtyMode: 'ball', balls: '4', ballWeight: '250', tf: '0.075', sizes: [{ count: 4, diameter: 12 }],
+  style: 'neapolitan', yeastType: 'IDY', yeastAdj: '0', extras: [],
+  hydration: '62', salt: '2.8', oil: '0', sugar: '0', stages: PRESETS.rt
+});
+
+const $ = id => document.getElementById(id);
+
+function parseNum(s) {
+  if (s === undefined || s === null || String(s).trim() === '') return NaN;
+  return Number(s);
+}
+
+function unitInput(cls, value, attrs, unit) {
+  const wrap = document.createElement('div');
+  wrap.className = `unit ${cls}`;
+  const input = document.createElement('input');
+  input.type = 'number';
+  for (const [k, val] of Object.entries(attrs)) input.setAttribute(k, val);
+  input.value = value === undefined || value === null ? '' : String(value);
+  const u = document.createElement('span');
+  u.textContent = unit;
+  wrap.append(input, u);
+  return wrap;
+}
+
+function stageRow(s) {
+  const row = document.createElement('div');
+  row.className = 'stage';
+  const n = document.createElement('span');
+  n.className = 'n';
+  const name = document.createElement('input');
+  name.type = 'text';
+  name.className = 's-name';
+  name.maxLength = 30;
+  name.placeholder = 'Name (optional)';
+  name.value = s.name || '';
+  const badge = document.createElement('span');
+  badge.className = 'badge';
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'icon-btn del';
+  del.textContent = '×';
+  row.append(
+    n,
+    name,
+    unitInput('u-temp', s.tempF, { min: T_MIN, max: T_MAX, step: 1, inputmode: 'numeric' }, '°F'),
+    unitInput('u-hours', s.hours, { min: 0, step: 'any', inputmode: 'decimal' }, 'h'),
+    badge,
+    del
+  );
+  return row;
+}
+
+const stageRows = () => [...$('stages').querySelectorAll('.stage')];
+
+function refreshStages() {
+  const rows = stageRows();
+  let clock = 0;
+  let clockValid = true;
+  rows.forEach((row, k) => {
+    const label = `Stage ${k + 1}`;
+    row.querySelector('.n').textContent = k + 1;
+    row.querySelector('.s-name').setAttribute('aria-label', `${label} name`);
+    const temp = row.querySelector('.u-temp input');
+    const hours = row.querySelector('.u-hours input');
+    temp.setAttribute('aria-label', `${label} ambient temperature (°F)`);
+    hours.setAttribute('aria-label', `${label} duration (hours)`);
+    const del = row.querySelector('.del');
+    del.setAttribute('aria-label', `Remove ${label}`);
+    del.disabled = rows.length <= 1;
+
+    const badge = row.querySelector('.badge');
+    const tf = parseNum(temp.value);
+    if (Number.isInteger(tf) && CHART_TEMPS.includes(tf)) {
+      const c = tempClass(tf);
+      badge.className = `badge ${c}`;
+      badge.textContent = CLASS_FRIENDLY[c];
+      badge.title = CLASS_LONG[c];
+    } else {
+      badge.className = 'badge na';
+      badge.textContent = '?';
+      badge.title = `Not a chart temperature (${T_MIN}–${T_MAX} °F, whole degrees)`;
+    }
+    const h = parseNum(hours.value);
+    if (Number.isFinite(h) && h > 0) clock += h;
+    else clockValid = false;
+  });
+  $('btnAddStage').disabled = rows.length >= MAX_STAGES;
+  $('stageInfo').textContent = clockValid ? `${fmtNum(clock)} h total` : 'Enter the hours for each step';
+}
+
+function setStages(list) {
+  const box = $('stages');
+  clear(box);
+  for (const s of list) box.appendChild(stageRow(s));
+  refreshStages();
+}
+
+function readStages() {
+  return stageRows().map(row => ({
+    name: row.querySelector('.s-name').value,
+    tempF: row.querySelector('.u-temp input').value,
+    hours: row.querySelector('.u-hours input').value
+  }));
+}
+
+function sizeRow(s) {
+  const row = el('div', undefined, 'size');
+  const count = document.createElement('input');
+  count.type = 'number';
+  count.className = 's-count';
+  count.min = '1';
+  count.step = '1';
+  count.inputMode = 'numeric';
+  count.value = s.count ?? '';
+  const times = el('span', '×', 'op');
+  const eq = el('span', '=', 'op');
+  times.setAttribute('aria-hidden', 'true');
+  eq.setAttribute('aria-hidden', 'true');
+  const del = el('button', '×', 'icon-btn del');
+  del.type = 'button';
+  row.append(
+    count,
+    times,
+    unitInput('u-diam', s.diameter, { min: 0, step: 'any', inputmode: 'decimal' }, 'in'),
+    eq,
+    el('output', '–', 'total-out s-weight'),
+    del
+  );
+  return row;
+}
+
+const sizeRows = () => [...$('sizes').querySelectorAll('.size')];
+
+function refreshSizes() {
+  const rows = sizeRows();
+  const tf = parseNum($('tf').value);
+  const tfOk = Number.isFinite(tf) && tf > 0;
+  rows.forEach((row, k) => {
+    const label = `Size ${k + 1}`;
+    const count = row.querySelector('.s-count');
+    const diam = row.querySelector('.u-diam input');
+    count.setAttribute('aria-label', `${label}: number of pizzas`);
+    diam.setAttribute('aria-label', `${label}: diameter (inches)`);
+    const del = row.querySelector('.del');
+    del.setAttribute('aria-label', `Remove ${label}`);
+    del.disabled = rows.length <= 1;
+    const n = parseNum(count.value);
+    const d = parseNum(diam.value);
+    const ok = tfOk && Number.isInteger(n) && n > 0 && Number.isFinite(d) && d > 0;
+    const out = row.querySelector('.s-weight');
+    out.textContent = ok ? scaleG(ballWeightFromSize(d, tf)) : '–';
+    out.title = 'Each ball = (diameter ÷ 2)² × π × thickness factor × 28.3495 g';
+  });
+  $('btnAddSize').disabled = rows.length >= MAX_SIZES;
+}
+
+function setSizes(list) {
+  const box = $('sizes');
+  clear(box);
+  for (const s of list) box.appendChild(sizeRow(s));
+  refreshSizes();
+}
+
+function readSizes() {
+  return sizeRows().map(row => ({
+    count: row.querySelector('.s-count').value,
+    diameter: row.querySelector('.u-diam input').value
+  }));
+}
+
+function extraRow(x) {
+  const row = el('div', undefined, 'extra');
+  const name = document.createElement('input');
+  name.type = 'text';
+  name.className = 'x-name';
+  name.maxLength = 30;
+  name.placeholder = 'Ingredient, e.g. diastatic malt';
+  name.value = x.name || '';
+  const amount = document.createElement('input');
+  amount.type = 'number';
+  amount.className = 'x-amount';
+  amount.min = '0';
+  amount.step = 'any';
+  amount.inputMode = 'decimal';
+  amount.value = x.amount ?? '';
+  const unit = document.createElement('select');
+  unit.className = 'x-unit';
+  for (const [val, text] of [['pct', '%'], ['g', 'g']]) {
+    const o = el('option', text);
+    o.value = val;
+    unit.append(o);
+  }
+  unit.value = x.unit === 'g' ? 'g' : 'pct';
+  const del = el('button', '×', 'icon-btn del');
+  del.type = 'button';
+  row.append(name, amount, unit, del);
+  return row;
+}
+
+const extraRows = () => [...$('extras').querySelectorAll('.extra')];
+
+function refreshExtras() {
+  const rows = extraRows();
+  rows.forEach((row, k) => {
+    const label = `Extra ingredient ${k + 1}`;
+    row.querySelector('.x-name').setAttribute('aria-label', `${label} name`);
+    row.querySelector('.x-amount').setAttribute('aria-label', `${label} amount`);
+    row.querySelector('.x-unit').setAttribute('aria-label', `${label} unit: % of flour or grams`);
+    row.querySelector('.del').setAttribute('aria-label', `Remove ${label}`);
+  });
+  $('btnAddExtra').disabled = rows.length >= MAX_EXTRAS;
+}
+
+function setExtras(list) {
+  const box = $('extras');
+  clear(box);
+  for (const x of list) box.appendChild(extraRow(x));
+  refreshExtras();
+}
+
+function readExtras() {
+  return extraRows().map(row => ({
+    name: row.querySelector('.x-name').value,
+    amount: row.querySelector('.x-amount').value,
+    unit: row.querySelector('.x-unit').value
+  }));
+}
+
+function readRawInputs() {
+  const checked = document.querySelector('input[name="yeastType"]:checked');
+  const mode = document.querySelector('input[name="qtyMode"]:checked');
+  return {
+    qtyMode: mode ? mode.value : 'ball', tf: $('tf').value, sizes: readSizes(), extras: readExtras(),
+    balls: $('balls').value, ballWeight: $('ballWeight').value, style: $('doughStyle').value,
+    yeastType: checked ? checked.value : '', yeastAdj: $('yeastAdj').value, stages: readStages(),
+    hydration: $('hydration').value, salt: $('salt').value, oil: $('oil').value, sugar: $('sugar').value
+  };
+}
+
+function validateInputs(raw) {
+  const errors = [];
+  const style = STYLES[raw.style];
+  if (!style) errors.push('Select a dough style.');
+  const v = {
+    style: raw.style,
+    styleLabel: style ? style.label : '',
+    usesOilSugar: !style || style.oilSugar,
+    yeastType: raw.yeastType
+  };
+
+  v.qtyMode = raw.qtyMode === 'size' ? 'size' : 'ball';
+  if (v.qtyMode === 'ball') {
+    const balls = parseNum(raw.balls);
+    const weight = parseNum(raw.ballWeight);
+    if (!Number.isInteger(balls) || balls <= 0) errors.push('Number of dough balls must be a whole number greater than zero.');
+    if (!Number.isFinite(weight) || weight <= 0) errors.push('Weight per dough ball must be greater than zero.');
+    v.groups = [{ count: balls, diameter: null, weight }];
+  } else {
+    v.tf = parseNum(raw.tf);
+    if (!Number.isFinite(v.tf) || v.tf <= 0) errors.push('Thickness factor must be greater than zero.');
+    const sizes = Array.isArray(raw.sizes) ? raw.sizes : [];
+    if (!sizes.length) errors.push('Add at least one pizza size.');
+    if (sizes.length > MAX_SIZES) errors.push(`Use at most ${MAX_SIZES} pizza sizes.`);
+    v.groups = sizes.map((s, k) => {
+      const count = parseNum(s.count);
+      const diameter = parseNum(s.diameter);
+      if (!Number.isInteger(count) || count <= 0) errors.push(`Size ${k + 1}: number of pizzas must be a whole number greater than zero.`);
+      if (!Number.isFinite(diameter) || diameter <= 0) errors.push(`Size ${k + 1}: diameter must be greater than zero.`);
+      return { count, diameter, weight: ballWeightFromSize(diameter, v.tf) };
+    });
+  }
+  v.balls = v.groups.reduce((a, g) => a + g.count, 0);
+  v.totalWeight = v.groups.reduce((a, g) => a + g.count * g.weight, 0);
+  v.ballWeight = v.groups.length && v.groups.every(g => g.weight === v.groups[0].weight) ? v.groups[0].weight : null;
+  if (v.yeastType !== 'IDY' && v.yeastType !== 'ADY') errors.push('Select a yeast type: IDY or ADY.');
+  v.yeastAdj = String(raw.yeastAdj ?? '').trim() === '' ? 0 : parseNum(raw.yeastAdj);
+  if (!Number.isFinite(v.yeastAdj) || v.yeastAdj < YEAST_ADJ_MIN || v.yeastAdj > YEAST_ADJ_MAX) {
+    errors.push(`Yeast adjustment must be between ${YEAST_ADJ_MIN}% and +${YEAST_ADJ_MAX}%.`);
+  }
+
+  for (const [key, label] of [['hydration', 'Hydration'], ['salt', 'Salt'], ['oil', 'Olive oil'], ['sugar', 'Sugar']]) {
+    if ((key === 'oil' || key === 'sugar') && !v.usesOilSugar) {
+      v[key] = 0;
+      continue;
+    }
+    v[key] = parseNum(raw[key]);
+    if (!Number.isFinite(v[key]) || v[key] < 0) errors.push(`${label} percentage must be a number of zero or greater.`);
+  }
+
+  const stages = Array.isArray(raw.stages) ? raw.stages : [];
+  if (!stages.length) errors.push('Add at least one fermentation stage.');
+  if (stages.length > MAX_STAGES) errors.push(`Use at most ${MAX_STAGES} fermentation stages.`);
+  v.stages = stages.map((s, k) => {
+    const tempF = parseNum(s.tempF);
+    const hours = parseNum(s.hours);
+    if (!Number.isInteger(tempF) || !CHART_TEMPS.includes(tempF)) {
+      errors.push(`Stage ${k + 1}: temperature must be a whole degree from ${T_MIN} to ${T_MAX} °F (the chart's rows).`);
+    }
+    if (!Number.isFinite(hours) || hours <= 0) errors.push(`Stage ${k + 1}: duration must be greater than zero.`);
+    return { name: String(s.name || '').trim().slice(0, 30), tempF, hours };
+  });
+  const extras = Array.isArray(raw.extras) ? raw.extras : [];
+  if (extras.length > MAX_EXTRAS) errors.push(`Use at most ${MAX_EXTRAS} extra ingredients.`);
+  v.extras = extras.slice(0, MAX_EXTRAS).map((x, k) => {
+    const name = String(x.name || '').trim().slice(0, 30) || `Extra ${k + 1}`;
+    const amount = parseNum(x.amount);
+    if (!Number.isFinite(amount) || amount < 0) errors.push(`${name}: amount must be zero or greater.`);
+    return { name, amount, unit: x.unit === 'g' ? 'g' : 'pct' };
+  });
+  const fixedGrams = v.extras.reduce((a, x) => a + (x.unit === 'g' && Number.isFinite(x.amount) ? x.amount : 0), 0);
+  if (fixedGrams > 0 && !(fixedGrams < v.totalWeight)) errors.push('Extra ingredients in grams must weigh less than the total dough.');
+
+  v.clockHours = v.stages.reduce((a, s) => a + s.hours, 0);
+  return { values: v, errors };
+}
+
+/* ======================================================================
+   RENDERING
+   ====================================================================== */
+
+const fmtNum = n => String(+n.toFixed(2));
+const fmtPct = n => `${(n * 100).toFixed(1)}%`;
+const fmtYeast = n => `${+n.toFixed(4)}%`;
+const fmtAdj = n => `${n > 0 ? '+' : ''}${n}%`;
+const g2 = n => `${n.toFixed(2)} g`;
+const pctText = n => `${n}%`;
+const YEAST_NAMES = { IDY: 'Instant Dry Yeast', ADY: 'Active Dry Yeast' };
+const YEAST_SHORT = { IDY: 'Instant yeast', ADY: 'Active dry yeast' };
+// Kitchen-scale rounding for display; copied text and tooltips keep full precision.
+const scaleG = (g, isYeast) => `${isYeast ? g.toFixed(2) : g >= 100 ? g.toFixed(0) : g.toFixed(1)} g`;
+const stageName = (s, k) => s.name || `Stage ${k + 1}`;
+
+let lastResult = null;
+
+function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+function el(tag, text, cls) {
+  const e = document.createElement(tag);
+  if (text !== undefined) e.textContent = text;
+  if (cls) e.className = cls;
+  return e;
+}
+
+function setMessages(groups) {
+  const box = $('messages');
+  clear(box);
+  for (const g of groups) {
+    if (!g.items.length) continue;
+    const div = el('div', undefined, `msg ${g.kind}`);
+    div.setAttribute('role', g.kind === 'error' ? 'alert' : 'status');
+    div.appendChild(el('strong', g.title));
+    const ul = el('ul');
+    for (const text of g.items) ul.appendChild(el('li', text));
+    div.appendChild(ul);
+    box.appendChild(div);
+  }
+}
+
+function fillFacts(dl, pairs) {
+  clear(dl);
+  for (const [k, val] of pairs) dl.append(el('dt', k), el('dd', val));
+}
+
+function fillTable(table, head, rows, foot, leftCols) {
+  clear(table);
+  const left = new Set(leftCols || []);
+  const hr = table.createTHead().insertRow();
+  head.forEach((h, i) => {
+    const th = el('th', h, left.has(i) ? 'l' : '');
+    th.scope = 'col';
+    hr.appendChild(th);
+  });
+  const body = table.createTBody();
+  for (const r of rows) {
+    const tr = body.insertRow();
+    if (r.cls) tr.className = r.cls;
+    r.cells.forEach((c, i) => tr.appendChild(el('td', String(c), left.has(i) ? 'l' : '')));
+  }
+  if (foot) {
+    const tr = table.createTFoot().insertRow();
+    foot.forEach((c, i) => tr.appendChild(el('td', String(c), left.has(i) ? 'l' : '')));
+  }
+}
+
+function buildChartTable(temps, activeType, hl) {
+  const table = el('table', undefined, 'chart');
+  const thead = table.createTHead();
+  for (const type of ['ADY', 'IDY']) {
+    const tr = thead.insertRow();
+    if (type === activeType) tr.className = 'active';
+    const th = el('th', `${type} %`);
+    th.scope = 'row';
+    tr.appendChild(th);
+    TXCRAIG_DATA[type].percentages.forEach((p, i) => {
+      const c = el('th', String(p), hl && i === hl.index ? 'hit' : '');
+      c.scope = 'col';
+      tr.appendChild(c);
+    });
+  }
+  const tbody = table.createTBody();
+  const source = TXCRAIG_DATA[activeType || 'IDY'].temperatures;
+  for (const tf of temps) {
+    const on = hl && hl.temps.has(tf);
+    const tr = tbody.insertRow();
+    const th = el('th', `${tf} °F`, on ? 'on' : '');
+    th.scope = 'row';
+    tr.appendChild(th);
+    source[tf].forEach((h, i) => {
+      const td = tr.insertCell();
+      td.textContent = h === null ? '' : h;
+      if (on && i === hl.index) td.className = 'hit';
+    });
+  }
+  return table;
+}
+
+function renderFullChart(activeType, hl) {
+  const box = $('fullChart');
+  clear(box);
+  box.appendChild(buildChartTable(CHART_TEMPS, activeType, hl));
+}
+
+function hideResults() {
+  $('recipeOut').hidden = true;
+  $('placeholder').hidden = false;
+  $('fermCard').hidden = true;
+  $('makeCard').hidden = true;
+  $('mobileBar').hidden = true;
+  $('btnCopy').disabled = true;
+  lastResult = null;
+}
+
+function fillBar(bar, items) {
+  clear(bar);
+  const total = items.reduce((a, it) => a + it.weight, 0);
+  for (const it of items) {
+    const s = el('span', undefined, it.cls);
+    s.style.flex = `${it.weight} 1 0`;
+    s.title = it.title;
+    if (total > 0 && it.weight / total >= 0.12) s.textContent = it.text;
+    bar.appendChild(s);
+  }
+}
+
+function recipeRows(v, lk, dough, yeastPct) {
+  const rows = [
+    ['Flour', 100, dough.flour, 2],
+    ['Water', v.hydration, dough.water, 2],
+    ['Salt', v.salt, dough.salt, 2]
+  ];
+  if (v.usesOilSugar) rows.push(['Olive oil', v.oil, dough.oil, 2], ['Sugar', v.sugar, dough.sugar, 2]);
+  for (const x of dough.extras) rows.push([x.name, +x.pct.toFixed(2), x.grams, 2]);
+  rows.push([YEAST_SHORT[lk.type], +yeastPct.toFixed(4), dough.yeast, 3]);
+  return rows;
+}
+
+function doughSummary(v) {
+  if (v.qtyMode === 'size') {
+    return `${v.groups.map(g => `${g.count} × ${fmtNum(g.diameter)}″ @ ${g.weight.toFixed(1)} g`).join(' + ')} = ${fmtNum(v.totalWeight)} g`;
+  }
+  return `${v.balls} × ${fmtNum(v.ballWeight)} g = ${fmtNum(v.totalWeight)} g`;
+}
+
+let recipeView = 'total';
+
+function adyText(grams, dp = 3) {
+  return `Activate the active dry yeast first: stir the ${grams.toFixed(dp)} g into some of the recipe's water at about 100–110 °F (38–43 °C) and let it stand 5–10 minutes until foamy, then mix it in with the rest of the water.`;
+}
+
+function renderRecipe(v, lk, dough, yeastPct) {
+  const rows = recipeRows(v, lk, dough, yeastPct);
+  const uniform = v.ballWeight !== null;
+  $('rv-ball').disabled = !uniform;
+  if (!uniform) $('rv-total').checked = true;
+  const perBall = uniform && recipeView === 'ball';
+  const div = perBall ? v.balls : 1;
+
+  $('heroYeastLbl').textContent = `${YEAST_SHORT[lk.type]} · ${fmtYeast(yeastPct)}`;
+  $('heroYeast').textContent = scaleG(dough.yeast / div, true);
+  $('heroYeast').title = `${(dough.yeast / div).toFixed(3)} g`;
+  $('heroTotalLbl').textContent = perBall ? 'Dough per pizza' : `Dough for ${v.balls} pizza${v.balls === 1 ? '' : 's'}`;
+  $('heroTotal').textContent = scaleG(v.totalWeight / div);
+  $('gramsHead').textContent = perBall ? 'Per pizza' : 'Total';
+
+  const body = $('recipeBody');
+  clear(body);
+  rows.forEach(([name, pct, grams, dp], i) => {
+    const tr = body.insertRow();
+    const isYeast = i === rows.length - 1;
+    if (isYeast) tr.className = 'yeast';
+    else if (pct === 0) tr.className = 'zero';
+    const nameCell = el('td', name);
+    if (isYeast) nameCell.title = YEAST_NAMES[lk.type];
+    const gramsCell = el('td', scaleG(grams / div, isYeast), 'g');
+    gramsCell.title = `${(grams / div).toFixed(dp)} g`;
+    tr.append(nameCell, el('td', pctText(pct), 'pct'), gramsCell);
+  });
+  const sum = dough.flour + dough.water + dough.salt + dough.oil + dough.sugar + dough.yeast
+    + dough.extras.reduce((a, x) => a + x.grams, 0);
+  $('recipeTotal').textContent = scaleG(sum / div);
+
+  const divide = $('divideNote');
+  divide.hidden = uniform;
+  divide.textContent = uniform ? '' : `Divide into ${v.groups.map(g => `${g.count} × ${scaleG(g.weight)} (${fmtNum(g.diameter)}″)`).join(', ')}.`;
+  const ady = $('adyNote');
+  ady.hidden = lk.type !== 'ADY';
+  ady.textContent = lk.type === 'ADY' ? adyText(dough.yeast / div, 2) : '';
+}
+
+function renderFermentation(v, lk, yeastPct) {
+  const b = lk.best;
+  const T1 = lk.refTempF;
+  const single = lk.stages.length === 1;
+
+  fillBar($('barClock'), b.parts.map((p, k) => ({
+    cls: tempClass(p.tempF),
+    weight: p.hours,
+    text: `${fmtNum(p.hours)} h`,
+    title: `${stageName(p, k)}: ${fmtNum(p.hours)} h at ${p.tempF} °F`
+  })));
+  fillBar($('barFerm'), b.parts.map((p, k) => ({
+    cls: tempClass(p.tempF),
+    weight: p.share,
+    text: `${Math.round(p.share * 100)}%`,
+    title: `${stageName(p, k)}: ${fmtPct(p.share)} of the fermentation (${fmtNum(p.hours)} of ${p.chartHours} chart h at ${p.tempF} °F)`
+  })));
+  $('clockLabel').textContent = `${fmtNum(v.clockHours)} h`;
+  $('fermLabel').textContent = `${fmtPct(b.reached)} of chart time`;
+  $('fermBars').hidden = single;
+  $('fermSummary').textContent = single
+    ? `Ready in about ${fmtNum(lk.stages[0].hours)} h at ${T1} °F.`
+    : `Ready after ${fmtNum(v.clockHours)} h: ${b.parts.map(p => `${fmtNum(p.hours)} h ${CLASS_FRIENDLY[tempClass(p.tempF)].toLowerCase()} (${p.tempF} °F)`).join(' → ')}.`;
+
+  fillFacts($('lookupList'), [
+    ['Yeast', `${b.percentage}% ${lk.type} (${YEAST_NAMES[lk.type]})`],
+    ['Chart column', `${b.index + 1} of ${CHART_COLUMNS}`],
+    single
+      ? ['Requested', `${fmtNum(lk.stages[0].hours)} h at ${T1} °F`]
+      : ['Schedule ≈', `${b.equivHours.toFixed(2)} h at ${T1} °F (Stage 1 equivalent)`],
+    ['Matched chart time', `${b.refHours} h at ${T1} °F`],
+    ['Difference', `${b.diff.toFixed(2)} h`],
+    ...(v.yeastAdj ? [['Your adjustment', `${fmtAdj(v.yeastAdj)} → ${fmtYeast(yeastPct)} ${lk.type}`]] : [])
+  ]);
+
+  fillTable($('calcTable'),
+    ['#', 'Stage', '°F', 'Type', 'Hours', `Chart h (${b.percentage}%)`, 'Share', `≈ h at ${T1} °F`],
+    b.parts.map((p, k) => ({
+      cells: [k + 1, stageName(p, k), p.tempF, CLASS_SHORT[tempClass(p.tempF)], fmtNum(p.hours), p.chartHours, fmtPct(p.share), p.refEquiv.toFixed(2)]
+    })),
+    ['', 'Total', '', '', fmtNum(v.clockHours), '', fmtPct(b.reached), b.equivHours.toFixed(2)],
+    [1]
+  );
+
+  let note = `Share = hours ÷ chart hours for ${b.percentage}% ${lk.type} at that temperature; the dough is due when the shares reach 100%. Predictions are a starting point; watch the dough.`;
+  if (lk.ties.length > 1) {
+    const list = lk.ties.map(t => `${t.percentage}% (${t.refHours} h)`).join(', ');
+    note = `${lk.ties.length} chart entries are equally close (${list}); the lowest yeast % was used, matched at ${b.refHours} h. ` + note;
+  }
+  if (v.yeastAdj) {
+    note += ` Your ${fmtAdj(v.yeastAdj)} adjustment is applied after the lookup; these times assume the chart's ${b.percentage}%, so expect the dough to move ${v.yeastAdj > 0 ? 'faster' : 'slower'}.`;
+  }
+  $('lookupNote').textContent = note;
+
+  fillTable($('candTable'),
+    [`${lk.type} %`, `Chart h at ${T1} °F`, 'Share reached', `≈ h at ${T1} °F`, 'Δ h'],
+    lk.candidates.map(c => ({
+      cls: c.index === b.index ? 'hit' : '',
+      cells: [c.percentage, c.refHours, fmtPct(c.reached), c.equivHours.toFixed(2), c.diff.toFixed(2)]
+    }))
+  );
+
+  renderFullChart(lk.type, { index: b.index, temps: new Set(lk.stages.map(s => s.tempF)) });
+}
+
+function recipeText({ v, lk, dough, yeastPct }) {
+  const b = lk.best;
+  const uniform = v.ballWeight !== null;
+  const line = (a, c, d, e) => `${a.padEnd(18)}${c.padStart(11)}${uniform ? d.padStart(11) : ''}   ${e}`;
+  return [
+    `Pizza dough (TXCraig1) – ${v.styleLabel}`,
+    doughSummary(v),
+    ...(v.qtyMode === 'size' ? [`Thickness factor ${v.tf} oz/in²`] : []),
+    '',
+    line('Ingredient', 'Total', 'Per pizza', '%'),
+    ...recipeRows(v, lk, dough, yeastPct).map(([name, pct, grams, dp]) =>
+      line(name, `${grams.toFixed(dp)} g`, uniform ? `${(grams / v.balls).toFixed(dp)} g` : '', pctText(pct))),
+    '',
+    `Fermentation (${fmtNum(v.clockHours)} h):`,
+    ...b.parts.map((p, k) => `  ${k + 1}. ${stageName(p, k)}: ${fmtNum(p.hours)} h at ${p.tempF} °F (${CLASS_SHORT[tempClass(p.tempF)]})`),
+    `TXCraig1: ${b.percentage}% ${lk.type} (${YEAST_NAMES[lk.type]}); schedule ≈ ${b.equivHours.toFixed(2)} h at ${lk.refTempF} °F vs chart ${b.refHours} h.`,
+    ...(v.yeastAdj ? [`Yeast adjustment: ${fmtAdj(v.yeastAdj)} → ${fmtYeast(yeastPct)} ${lk.type} (chart timing assumes ${b.percentage}%).`] : []),
+    ...(lk.type === 'ADY' ? ['', adyText(dough.yeast)] : [])
+  ].join('\n');
+}
+
+/* ======================================================================
+   ACTIONS
+   ====================================================================== */
+
+function updateFormulaSummary() {
+  const style = STYLES[$('doughStyle').value] || STYLES.custom;
+  const val = id => ($(id).value.trim() || '–');
+  const parts = [`water ${val('hydration')}%`, `salt ${val('salt')}%`];
+  if (style.oilSugar) parts.push(`oil ${val('oil')}%`, `sugar ${val('sugar')}%`);
+  const n = extraRows().length;
+  if (n) parts.push(`+${n} extra`);
+  const adj = parseNum($('yeastAdj').value);
+  if (adj) parts.push(`yeast ${fmtAdj(adj)}`);
+  $('formulaSummary').textContent = parts.join(' · ');
+}
+
+function onCalculate(e) {
+  if (e) e.preventDefault();
+  $('copyStatus').textContent = '';
+  updateFormulaSummary();
+  const raw = readRawInputs();
+  const { values: v, errors } = validateInputs(raw);
+  if (errors.length) {
+    hideResults();
+    setMessages([{ kind: 'error', title: 'Please fix the following:', items: errors }]);
+    if (errors.some(m => /Hydration|Salt|Olive oil|Sugar|Yeast adjustment|amount must|Extra/.test(m))) $('formulaDetails').open = true;
+    return;
+  }
+  const lk = lookupSchedule(v.yeastType, v.stages);
+  if (!lk.ok) {
+    hideResults();
+    setMessages([{ kind: 'warn', title: 'No TXCraig1 chart match. Nothing was calculated.', items: [lk.error] }]);
+    renderFullChart(v.yeastType, null);
+    return;
+  }
+  const yeastPct = adjustYeast(lk.percentage, v.yeastAdj);
+  const dough = calculateDough(v, yeastPct);
+  setMessages([{ kind: 'warn', title: 'Notes', items: lk.warnings }]);
+  lastResult = { v, lk, dough, yeastPct, raw };
+  renderRecipe(v, lk, dough, yeastPct);
+  renderFermentation(v, lk, yeastPct);
+  $('recipeOut').hidden = false;
+  $('placeholder').hidden = true;
+  $('fermCard').hidden = false;
+  $('btnCopy').disabled = false;
+  $('mbYeast').textContent = `${scaleG(dough.yeast, true)} ${YEAST_SHORT[lk.type].toLowerCase()}`;
+  $('mbTotal').textContent = `${scaleG(v.totalWeight)} dough · ${fmtYeast(yeastPct)}`;
+  $('mobileBar').hidden = currentTab !== 'calc';
+  prepareMakeCard(v, raw);
+}
+
+let calcTimer = 0;
+function scheduleCalc() {
+  clearTimeout(calcTimer);
+  calcTimer = setTimeout(onCalculate, 150);
+}
+
+let currentTab = 'calc';
+function showTab(name) {
+  currentTab = name;
+  for (const t of document.querySelectorAll('[role="tab"]')) {
+    const on = t.dataset.tab === name;
+    t.setAttribute('aria-selected', String(on));
+    t.tabIndex = on ? 0 : -1;
+  }
+  for (const p of document.querySelectorAll('[data-panel]')) p.hidden = p.dataset.panel !== name;
+  $('mobileBar').hidden = name !== 'calc' || !lastResult;
+}
+
+function onTabKey(e) {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const i = tabs.indexOf(e.currentTarget);
+  const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+  showTab(next.dataset.tab);
+  next.focus();
+}
+
+// TF presets reuse the style ranges but are chosen independently of the dough Style in step 2.
+function fillTfStyles() {
+  const sel = $('tfStyle');
+  for (const [key, s] of Object.entries(STYLES)) {
+    if (!s.tf) continue;
+    const o = el('option', s.label);
+    o.value = key;
+    sel.append(o);
+  }
+  const custom = el('option', 'Custom');
+  custom.value = 'custom';
+  sel.append(custom);
+}
+
+function matchTfStyle(tf) {
+  const hit = Object.entries(STYLES).find(([, s]) => s.tf && tfMid(s.tf) === tf);
+  return hit ? hit[0] : 'custom';
+}
+
+function refreshTfRange() {
+  const s = STYLES[$('tfStyle').value];
+  $('tfRange').textContent = s && s.tf ? `typical ${s.tf[0]}–${s.tf[1]}` : '';
+}
+
+function onTfStyleChange() {
+  const s = STYLES[$('tfStyle').value];
+  if (s && s.tf) $('tf').value = tfMid(s.tf);
+  refreshTfRange();
+  refreshSizes();
+}
+
+function onTfInput() {
+  const sel = $('tfStyle');
+  const tf = parseNum($('tf').value);
+  const s = STYLES[sel.value];
+  if (!s || !s.tf || tfMid(s.tf) !== tf) sel.value = matchTfStyle(tf);
+  refreshTfRange();
+  refreshSizes();
+}
+
+function onAddExtra() {
+  if (extraRows().length >= MAX_EXTRAS) return;
+  const row = extraRow({ name: '', amount: '', unit: 'pct' });
+  $('extras').appendChild(row);
+  refreshExtras();
+  scheduleCalc();
+  row.querySelector('.x-name').focus();
+}
+
+function onExtraClick(e) {
+  const btn = e.target.closest('.del');
+  if (!btn) return;
+  btn.closest('.extra').remove();
+  refreshExtras();
+  scheduleCalc();
+}
+
+function setQtyMode(mode) {
+  for (const r of document.querySelectorAll('input[name="qtyMode"]')) r.checked = r.value === mode;
+  $('qtyBall').hidden = mode !== 'ball';
+  $('qtySize').hidden = mode !== 'size';
+}
+
+// Style decides which ingredients are used.
+function refreshStyle() {
+  const style = STYLES[$('doughStyle').value] || STYLES.custom;
+  for (const d of document.querySelectorAll('.opt-ing')) d.hidden = !style.oilSugar;
+  $('styleNote').hidden = style.oilSugar;
+  $('styleNote').textContent = style.oilSugar ? '' : `${style.label}: flour, water, salt and yeast only. Choose another style or Custom to add oil or sugar.`;
+}
+
+// Only an explicit style change prefills; loading or importing keeps saved percentages.
+function onStyleChange() {
+  const style = STYLES[$('doughStyle').value];
+  if (style && style.oil !== undefined) {
+    $('oil').value = style.oil;
+    $('sugar').value = style.sugar;
+  }
+  refreshStyle();
+}
+
+function onAddSize() {
+  const rows = sizeRows();
+  if (rows.length >= MAX_SIZES) return;
+  const last = rows[rows.length - 1];
+  const row = sizeRow({ count: 1, diameter: last ? last.querySelector('.u-diam input').value : 12 });
+  $('sizes').appendChild(row);
+  refreshSizes();
+  scheduleCalc();
+  row.querySelector('.u-diam input').focus();
+}
+
+function onSizeClick(e) {
+  const btn = e.target.closest('.del');
+  if (!btn || sizeRows().length <= 1) return;
+  btn.closest('.size').remove();
+  refreshSizes();
+  scheduleCalc();
+}
+
+function applyValues(src) {
+  setQtyMode(src.qtyMode);
+  $('balls').value = src.balls;
+  $('ballWeight').value = src.ballWeight;
+  $('tf').value = src.tf;
+  $('tfStyle').value = matchTfStyle(parseNum(src.tf));
+  refreshTfRange();
+  setExtras(src.extras || []);
+  setSizes(src.sizes);
+  $('doughStyle').value = src.style;
+  $('hydration').value = src.hydration;
+  $('salt').value = src.salt;
+  $('oil').value = src.oil;
+  $('sugar').value = src.sugar;
+  $('yeastAdj').value = src.yeastAdj;
+  for (const r of document.querySelectorAll('input[name="yeastType"]')) r.checked = r.value === src.yeastType;
+  refreshStyle();
+  setStages(src.stages);
+  updateTotalWeight();
+}
+
+function onReset() {
+  applyValues(DEFAULTS);
+  setMessages([]);
+  $('copyStatus').textContent = '';
+  onCalculate();
+}
+
+function onAddStage() {
+  const rows = stageRows();
+  if (rows.length >= MAX_STAGES) return;
+  const last = rows[rows.length - 1];
+  const row = stageRow({ name: '', tempF: last ? last.querySelector('.u-temp input').value : '70', hours: '' });
+  $('stages').appendChild(row);
+  refreshStages();
+  scheduleCalc();
+  row.querySelector('.u-hours input').focus();
+}
+
+function onStageClick(e) {
+  const btn = e.target.closest('.del');
+  if (!btn || stageRows().length <= 1) return;
+  btn.closest('.stage').remove();
+  refreshStages();
+  scheduleCalc();
+}
+
+async function copyText(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* fall through */ }
+  }
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly', '');
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+  ta.remove();
+  return ok;
+}
+
+async function onCopy() {
+  if (!lastResult) return;
+  const ok = await copyText(recipeText(lastResult));
+  $('copyStatus').textContent = ok ? 'Recipe copied to clipboard.' : 'Copy failed. Select the recipe and copy it manually.';
+}
+
+function updateTotalWeight() {
+  const n = parseNum($('balls').value);
+  const w = parseNum($('ballWeight').value);
+  $('totalWeight').textContent = (Number.isFinite(n) && Number.isFinite(w) && n > 0 && w > 0) ? `${fmtNum(n * w)} g` : '–';
+}
+
+/* ======================================================================
+   HISTORY - makes and feedback, saved in this browser and exported/imported as JSON
+   ====================================================================== */
+
+const HISTORY_KEY = 'pizzaDoughCalculator.history.v1';
+const HISTORY_APP = 'pizza-dough-calculator';
+const PROOF_LABELS = Object.freeze({ under: 'Under', right: 'Just right', over: 'Over' });
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+let bakeLog = [];
+let storageOk = true;
+
+function newId() {
+  if (window.crypto && typeof crypto.randomUUID === 'function') {
+    try { return crypto.randomUUID(); } catch (e) { /* fall through */ }
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+const str = (x, max) => (typeof x === 'string' || typeof x === 'number' ? String(x).slice(0, max) : '');
+
+// Imported data is untrusted: copy only known fields, coerce types, and re-validate like form input.
+function sanitizeInputs(i) {
+  if (!i || typeof i !== 'object') return null;
+  const out = {
+    qtyMode: i.qtyMode === 'size' ? 'size' : 'ball',
+    balls: str(i.balls, 12),
+    ballWeight: str(i.ballWeight, 12),
+    tf: str(i.tf, 12),
+    sizes: Array.isArray(i.sizes)
+      ? i.sizes.slice(0, MAX_SIZES).map(s => ({ count: str(s && s.count, 12), diameter: str(s && s.diameter, 12) }))
+      : [],
+    style: str(i.style, 20),
+    yeastType: str(i.yeastType, 3),
+    yeastAdj: str(i.yeastAdj, 12),
+    hydration: str(i.hydration, 12),
+    salt: str(i.salt, 12),
+    oil: str(i.oil, 12),
+    sugar: str(i.sugar, 12),
+    stages: Array.isArray(i.stages)
+      ? i.stages.slice(0, MAX_STAGES).map(s => ({ name: str(s && s.name, 30), tempF: str(s && s.tempF, 12), hours: str(s && s.hours, 12) }))
+      : [],
+    extras: Array.isArray(i.extras)
+      ? i.extras.slice(0, MAX_EXTRAS).map(x => ({ name: str(x && x.name, 30), amount: str(x && x.amount, 12), unit: x && x.unit === 'g' ? 'g' : 'pct' }))
+      : []
+  };
+  if (!out.sizes.length) out.sizes = DEFAULTS.sizes.map(s => ({ count: String(s.count), diameter: String(s.diameter) }));
+  return validateInputs(out).errors.length ? null : out;
+}
+
+function inputsKey(inputs) {
+  const { values: v } = validateInputs(inputs);
+  return JSON.stringify([
+    v.qtyMode,
+    v.groups.map(g => [g.count, v.qtyMode === 'size' ? g.diameter : g.weight]),
+    v.qtyMode === 'size' ? v.tf : null,
+    v.style, v.yeastType, v.yeastAdj, v.hydration, v.salt, v.oil, v.sugar,
+    v.stages.map(s => [s.tempF, s.hours]),
+    v.extras.map(x => [x.name, x.amount, x.unit])
+  ]);
+}
+
+function sanitizeMake(m) {
+  const src = m && typeof m === 'object' ? m : {};
+  const date = str(src.date, 10);
+  return {
+    id: str(src.id, 64) || newId(),
+    date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '',
+    proof: Object.prototype.hasOwnProperty.call(PROOF_LABELS, src.proof) ? src.proof : '',
+    rating: Number.isInteger(src.rating) && src.rating >= 1 && src.rating <= 5 ? src.rating : null,
+    notes: str(src.notes, 2000)
+  };
+}
+
+function sanitizeBake(b) {
+  if (!b || typeof b !== 'object') return null;
+  const inputs = sanitizeInputs(b.inputs);
+  if (!inputs) return null;
+  return {
+    id: str(b.id, 64) || newId(),
+    name: str(b.name, 80) || 'Saved dough',
+    createdAt: str(b.createdAt, 40),
+    yeast: str(b.yeast, 40),
+    inputs,
+    key: inputsKey(inputs),
+    makes: Array.isArray(b.makes) ? b.makes.slice(0, 500).map(sanitizeMake) : []
+  };
+}
+
+function sanitizeHistory(data) {
+  const list = Array.isArray(data) ? data : data && Array.isArray(data.bakes) ? data.bakes : [];
+  return list.slice(0, 1000).map(sanitizeBake).filter(Boolean);
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    bakeLog = raw ? sanitizeHistory(JSON.parse(raw)) : [];
+  } catch (e) {
+    storageOk = false;
+    bakeLog = [];
+  }
+}
+
+function saveHistory() {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(bakeLog.map(({ key, ...b }) => b)));
+    storageOk = true;
+  } catch (e) {
+    storageOk = false;
+  }
+  $('historyStatus').textContent = storageOk ? '' : 'This browser won\'t store history for this page. Use Export to keep it.';
+}
+
+function autoName(v) {
+  const dough = v.qtyMode === 'size'
+    ? v.groups.map(g => `${g.count}×${fmtNum(g.diameter)}″`).join(' + ')
+    : `${v.balls}×${fmtNum(v.ballWeight)} g`;
+  const sched = v.stages.map(s => `${fmtNum(s.hours)} h @ ${s.tempF} °F`).join(' → ');
+  return `${v.styleLabel} · ${dough} · ${sched}`.slice(0, 80);
+}
+
+function makeText(m, short) {
+  const parts = [
+    m.date || 'Undated',
+    m.proof ? PROOF_LABELS[m.proof] : '',
+    m.rating ? '★'.repeat(m.rating) + '☆'.repeat(5 - m.rating) : ''
+  ];
+  if (!short && m.notes) parts.push(m.notes);
+  return parts.filter(Boolean).join(' · ');
+}
+
+function renderHistory() {
+  const list = $('historyList');
+  clear(list);
+  $('historyEmpty').hidden = bakeLog.length > 0;
+  $('btnExport').disabled = !bakeLog.length;
+  $('historyCount').textContent = bakeLog.length ? String(bakeLog.length) : '';
+  for (const b of bakeLog) {
+    const li = el('li', undefined, 'bake');
+    const head = el('div', undefined, 'bake-head');
+    const info = el('div');
+    const last = b.makes[b.makes.length - 1];
+    const n = b.makes.length;
+    info.append(el('b', b.name), el('span', [b.yeast, `${n} make${n === 1 ? '' : 's'}`, last ? `last: ${makeText(last, true)}` : ''].filter(Boolean).join(' · '), 'note'));
+    const actions = el('div', undefined, 'bake-actions');
+    const load = el('button', 'Load', 'chip');
+    load.type = 'button';
+    load.dataset.action = 'load';
+    load.dataset.id = b.id;
+    load.title = 'Load this dough to make it again or log another make';
+    const del = el('button', '×', 'icon-btn del');
+    del.type = 'button';
+    del.dataset.action = 'delete';
+    del.dataset.id = b.id;
+    del.setAttribute('aria-label', `Delete ${b.name}`);
+    actions.append(load, del);
+    head.append(info, actions);
+    li.append(head);
+    if (n) {
+      const det = el('details', undefined, 'more');
+      det.append(el('summary', 'Makes & feedback'));
+      const ul = el('ul', undefined, 'makes');
+      for (const m of [...b.makes].reverse()) ul.append(el('li', makeText(m)));
+      det.append(ul);
+      li.append(det);
+    }
+    list.append(li);
+  }
+}
+
+function prepareMakeCard(v, raw) {
+  const inputs = sanitizeInputs(raw);
+  const key = inputs ? inputsKey(inputs) : null;
+  const match = key && bakeLog.find(b => b.key === key);
+  $('bakeName').placeholder = autoName(v);
+  $('bakeName').value = match ? match.name : '';
+  if (!$('makeDate').value) $('makeDate').value = todayStr();
+  const n = match ? match.makes.length : 0;
+  $('makeMatch').textContent = match
+    ? `Matches “${match.name}” in your history (${n} make${n === 1 ? '' : 's'}). Saving adds another make.`
+    : 'New dough. Saving adds it to your history with this make.';
+  $('makeStatus').textContent = '';
+  $('makeCard').hidden = false;
+}
+
+function onSaveMake() {
+  if (!lastResult) return;
+  const inputs = sanitizeInputs(lastResult.raw);
+  if (!inputs) {
+    $('makeStatus').textContent = 'These inputs could not be saved. Recalculate and try again.';
+    return;
+  }
+  const key = inputsKey(inputs);
+  const name = $('bakeName').value.trim().slice(0, 80) || autoName(lastResult.v);
+  let bake = bakeLog.find(b => b.key === key);
+  if (!bake) {
+    bake = { id: newId(), name, createdAt: new Date().toISOString(), yeast: '', inputs, key, makes: [] };
+  }
+  bake.name = name;
+  bake.yeast = `${fmtYeast(lastResult.yeastPct)} ${lastResult.lk.type}`;
+  const proof = document.querySelector('input[name="proof"]:checked');
+  bake.makes.push(sanitizeMake({
+    id: newId(),
+    date: $('makeDate').value,
+    proof: proof ? proof.value : '',
+    rating: parseInt($('makeRating').value, 10),
+    notes: $('makeNotes').value
+  }));
+  bakeLog = [bake, ...bakeLog.filter(b => b !== bake)];
+  saveHistory();
+  renderHistory();
+  $('makeNotes').value = '';
+  $('makeRating').value = '';
+  if (proof) proof.checked = false;
+  prepareMakeCard(lastResult.v, lastResult.raw);
+  $('makeStatus').textContent = `Saved make #${bake.makes.length} of “${name}”.`;
+}
+
+function onHistoryClick(e) {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const bake = bakeLog.find(b => b.id === btn.dataset.id);
+  if (!bake) return;
+  if (btn.dataset.action === 'load') {
+    applyValues({ ...DEFAULTS, ...bake.inputs });
+    showTab('calc');
+    onCalculate();
+    $('recipeCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (btn.dataset.action === 'delete') {
+    const n = bake.makes.length;
+    if (!window.confirm(`Delete “${bake.name}” and its ${n} make${n === 1 ? '' : 's'} from history?`)) return;
+    bakeLog = bakeLog.filter(b => b !== bake);
+    saveHistory();
+    renderHistory();
+  }
+}
+
+function onExport() {
+  const data = {
+    app: HISTORY_APP,
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    bakes: bakeLog.map(({ key, ...b }) => b)
+  };
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  const a = el('a');
+  a.href = url;
+  a.download = `pizza-dough-history-${todayStr()}.json`;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function mergeImported(incoming) {
+  let added = 0;
+  let updated = 0;
+  for (const b of incoming) {
+    const existing = bakeLog.find(h => h.id === b.id || h.key === b.key);
+    if (!existing) {
+      bakeLog.push(b);
+      added++;
+      continue;
+    }
+    const ids = new Set(existing.makes.map(m => m.id));
+    const fresh = b.makes.filter(m => !ids.has(m.id));
+    if (fresh.length) {
+      existing.makes.push(...fresh);
+      existing.makes.sort((x, y) => x.date.localeCompare(y.date));
+      updated++;
+    }
+  }
+  return { added, updated };
+}
+
+function onImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  const status = $('historyStatus');
+  if (file.size > MAX_IMPORT_BYTES) {
+    status.textContent = 'That file is too large to be a history export.';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    let data;
+    try {
+      data = JSON.parse(String(reader.result));
+    } catch (err) {
+      status.textContent = 'That file is not valid JSON.';
+      return;
+    }
+    if (!Array.isArray(data) && (!data || data.app !== HISTORY_APP)) {
+      status.textContent = 'That file is not a Pizza Dough Calculator history export.';
+      return;
+    }
+    const total = Array.isArray(data) ? data.length : Array.isArray(data.bakes) ? data.bakes.length : 0;
+    const incoming = sanitizeHistory(data);
+    const { added, updated } = mergeImported(incoming);
+    saveHistory();
+    renderHistory();
+    const skipped = total - incoming.length;
+    status.textContent = `Imported ${added} new dough${added === 1 ? '' : 's'}, added makes to ${updated}${skipped ? `, skipped ${skipped} invalid` : ''}.`
+      + (storageOk ? '' : ' This browser won\'t store history for this page. Use Export to keep it.');
+  };
+  reader.onerror = () => { status.textContent = 'Could not read that file.'; };
+  reader.readAsText(file);
+}
+
+/* ======================================================================
+   INIT
+   ====================================================================== */
+
+function init() {
+  const status = $('chartStatus');
+  if (chartErrors.length) {
+    status.className = 'note err';
+    status.textContent = `Chart validation failed, yeast will not be calculated: ${chartErrors.join(' ')}`;
+    setMessages([{ kind: 'error', title: 'Embedded chart failed validation', items: chartErrors }]);
+  } else {
+    status.textContent = `Validated: ${CHART_TEMPS.length} temperature rows (${T_MIN}–${T_MAX} °F) × ${CHART_COLUMNS} columns, separate ADY and IDY headers. Highlighted: the matched column at each stage temperature.`;
+  }
+
+  fillTfStyles();
+  applyValues(DEFAULTS);
+  renderFullChart('IDY', null);
+  loadHistory();
+  renderHistory();
+  if (!storageOk) $('historyStatus').textContent = 'This browser won\'t store history for this page. Use Export to keep it.';
+  $('btnSaveMake').addEventListener('click', onSaveMake);
+  $('btnExport').addEventListener('click', onExport);
+  $('btnImport').addEventListener('click', () => $('importFile').click());
+  $('importFile').addEventListener('change', onImportFile);
+  $('historyList').addEventListener('click', onHistoryClick);
+
+  $('balls').addEventListener('input', updateTotalWeight);
+  $('ballWeight').addEventListener('input', updateTotalWeight);
+  $('calcForm').addEventListener('submit', onCalculate);
+  $('btnReset').addEventListener('click', onReset);
+  $('btnCopy').addEventListener('click', onCopy);
+  $('btnAddStage').addEventListener('click', onAddStage);
+  $('stages').addEventListener('input', refreshStages);
+  $('stages').addEventListener('click', onStageClick);
+  for (const r of document.querySelectorAll('input[name="qtyMode"]')) {
+    r.addEventListener('change', () => setQtyMode(r.value));
+  }
+  $('doughStyle').addEventListener('change', onStyleChange);
+  $('tf').addEventListener('input', onTfInput);
+  $('tfStyle').addEventListener('change', onTfStyleChange);
+  $('sizes').addEventListener('input', refreshSizes);
+  $('sizes').addEventListener('click', onSizeClick);
+  $('btnAddSize').addEventListener('click', onAddSize);
+  $('btnAddExtra').addEventListener('click', onAddExtra);
+  $('extras').addEventListener('click', onExtraClick);
+  for (const b of document.querySelectorAll('[data-preset]')) {
+    b.addEventListener('click', () => {
+      setStages(PRESETS[b.dataset.preset]);
+      scheduleCalc();
+    });
+  }
+  $('calcForm').addEventListener('input', scheduleCalc);
+  $('calcForm').addEventListener('change', scheduleCalc);
+  for (const t of document.querySelectorAll('[role="tab"]')) {
+    t.addEventListener('click', () => showTab(t.dataset.tab));
+    t.addEventListener('keydown', onTabKey);
+  }
+  for (const r of document.querySelectorAll('input[name="recipeView"]')) {
+    r.addEventListener('change', () => {
+      recipeView = r.value;
+      if (lastResult) renderRecipe(lastResult.v, lastResult.lk, lastResult.dough, lastResult.yeastPct);
+    });
+  }
+  $('btnJump').addEventListener('click', () => $('recipeCard').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  onCalculate();
+}
+
+init();
+</script>
+</body>
+</html>
